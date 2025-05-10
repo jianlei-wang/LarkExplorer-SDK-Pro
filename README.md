@@ -31,14 +31,15 @@ npm i larkexplorer-sdk-pro --save-dev
 
 ### 2.创建基础地球——以在vue3中使用为例
 
-```vue
+```typescript
 <script setup lang="ts">
-import { Viewer } from 'cesium2stest';
+import { Viewer, BaseLayer } from 'larkexplorer-sdk-pro';
 import * as Cesium from 'cesium';
 import { nextTick, onMounted } from 'vue';
 onMounted(() => {
   nextTick(() => {
     window.viewer = new Viewer('map', {
+      baseLayer: BaseLayer.DefaultSingleImg,
       baseLayer: new Cesium.ImageryLayer(
         new Cesium.UrlTemplateImageryProvider({
           url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}.png',
@@ -62,6 +63,23 @@ onMounted(() => {
   height: 100%;
 }
 </style>
+```
+
+### 3. 注意：若出现Cesium静态文件访问出错
+
+```bash
+// 引入vite-plugin-cesium插件
+npm i vite-plugin-cesium --save-dev
+```
+
+vite.config.ts配置
+
+```typescript
+import cesium from "vite-plugin-cesium"
+
+export default defineConfig({
+  plugins: [cesium()],
+})
 ```
 
 ## 版权声明

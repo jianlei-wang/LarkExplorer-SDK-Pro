@@ -1,12 +1,13 @@
 {
   "name": "larkexplorer-sdk-pro",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "main": "dist/larkexplorer.esm.js",
   "module": "dist/larkexplorer.esm.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "rollup -c",
-    "format": "prettier --write \"src/**/*.ts\""
+    "format": "prettier --write \"src/**/*.ts\"",
+    "jsdocs": "rimraf api-docs && jsdoc -c jsdoc.json README.md"
   },
   "keywords": [
     "3D",
@@ -25,9 +26,10 @@
   "peerDependencies": {
     "cesium": "1.122.0"
   },
-  "dependencies": {},
   "devDependencies": {
     "@rollup/plugin-typescript": "^12.1.1",
+    "better-docs": "^2.7.3",
+    "jsdoc": "^4.0.4",
     "rollup": "^2.79.2",
     "rollup-plugin-commonjs": "^10.1.0",
     "rollup-plugin-copy": "^3.5.0",

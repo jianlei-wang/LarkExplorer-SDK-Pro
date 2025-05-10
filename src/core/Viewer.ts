@@ -1,7 +1,9 @@
 import * as Cesium from "cesium"
-import { CesiumEventEmitter } from "./EventEmitter"
+import EventEmitter from "./EventEmitter"
+import { CesiumIcon } from "src/utils/Default"
+import BaseLayer from "./BaseLayer"
 
-//默认相机范围
+// 设置默认相机观察范围（覆盖Cesium默认设置）
 Cesium.Camera.DEFAULT_VIEW_RECTANGLE = new Cesium.Rectangle(
   Cesium.Math.toRadians(70),
   Cesium.Math.toRadians(-15),
@@ -9,83 +11,168 @@ Cesium.Camera.DEFAULT_VIEW_RECTANGLE = new Cesium.Rectangle(
   Cesium.Math.toRadians(80)
 )
 
-interface Option extends Cesium.Viewer.ConstructorOptions {
-  allowCameraUnderground?: boolean
-  asMapboxControl?: boolean
+/**
+ * 地图场景配置扩展接口
+ * @interface
+ * @extends Cesium.Viewer.ConstructorOptions
+ * @property {string} [defaultKey] - Cesium Icon资源key
+ * @property {boolean} [fpsShow=false] - 是否显示帧率，默认不显示
+ * @property {boolean} [mapboxController=false] - 是否采用Mapbox控制模式（左键拖动，中间缩放，右键视角），默认不开启
+ */
+interface ViewOption extends Cesium.Viewer.ConstructorOptions {
+  defaultKey?: string
+  fpsShow?: boolean
+  mapboxController?: boolean
 }
 
-export class Viewer extends Cesium.Viewer {
-  constructor(container: Element | string, public options?: Option) {
-    //设置初始化默认参数
+// 增强版地图场景类，继承自 Cesium.Viewer，提供了更丰富的功能和配置选项。
+class Viewer extends Cesium.Viewer {
+  /**
+   * 创建地图场景实例
+   * @extends Cesium.Viewer
+   * @param {Element | string} container - DOM元素或元素ID，作为地图容器
+   * @param {ViewOption} [options] - 地图配置选项（合并默认配置）
+   * @description
+   * 增强版地图场景类，继承自 Cesium.Viewer，提供了更丰富的功能和配置选项。
+   * @example
+   * // 创建地图实例
+   * const viewer = new Viewer('cesiumContainer', {
+   *   timeline: true,
+   *   scene3DOnly: false
+   * });
+   */
+  constructor(container: Element | string, public options?: ViewOption) {
     super(container, {
-      //是否创建动画小器件，左下角仪表
+      // 基础配置
       animation: false,
-      //是否显示全屏按钮
       fullscreenButton: false,
-      //放大镜图标，查找位置工具，查找到之后会将镜头对准找到的地址，默认使用bing地图
       geocoder: false,
-      //房子图标，是否显示Home按钮，视角返回初始位置
       homeButton: false,
-      //是否显示信息框
       infoBox: false,
-      //经纬网图标，选择视角的模式，有三种：3D，2D，哥伦布视图（2.5D)，是否显示3D/2D选择器
       sceneModePicker: false,
-      //是否显示时间轴
       timeline: false,
-      //设定3维地图的默认场景模式:Cesium.SceneMode.SCENE2D、Cesium.SceneMode.SCENE3D、Cesium.SceneMode.MORPHING
       sceneMode: Cesium.SceneMode.SCENE3D,
-      //如果设置为true，则所有几何图形以3D模式绘制以节约GPU资源
       scene3DOnly: true,
-      //是否显示图层选择器，可选择要显示的地图服务和地形服务
       baseLayerPicker: false,
-      //问号图标，右上角导航帮助按钮，显示默认的地图控制帮助
       navigationHelpButton: false,
-      //虚拟现实
       vrButton: false,
-      //是否显示选取指示器组件[绿框]
       selectionIndicator: false,
-      //设置背景透明,涉及透贴显示
       orderIndependentTranslucency: true,
-      //开启时间动画
       shouldAnimate: true,
-      //关闭默认底图以支持离线使用
-      baseLayer: false,
+      baseLayer: BaseLayer.DefaultSingleImg,
+
+      // WebGL上下文配置
       contextOptions: {
         webgl: {
-          preserveDrawingBuffer: false, //保留绘图缓冲区：通过canvas截图需要将该项设置为true
-          failIfMajorPerformanceCaveat: true, //防止在性能不佳的设备上运行
-          antialias: true, //抗锯齿,
-          alpha: true, //透明度支持
-          powerPreference: "high-performance", //cpu偏好：优先使用高性能cpu,
+          preserveDrawingBuffer: false,
+          failIfMajorPerformanceCaveat: true,
+          antialias: true,
+          alpha: true,
+          powerPreference: "high-performance",
         },
         requestWebgl1: false,
       },
-      shadows: true, //阴影
-      ...options,
+      shadows: true,
+      ...options, // 合并用户自定义配置
     })
     this.initBaseConfig()
   }
-  //常见基础设置
+
+  /**
+   * Cesium事件发射器实例
+   * @type {EventEmitter}
+   */
+  public eventEmitter: EventEmitter = new EventEmitter(this)
+
+  /**
+   * 初始化基础场景配置
+   * @private
+   * @method
+   * @description
+   * 执行以下配置：
+   * 1. 地形深度检测
+   * 2. 天体显示设置
+   * 3. 光照设置
+   * 4. 碰撞检测
+   * 5. 版权信息隐藏
+   * 6. 高DPI适配
+   * 7. Cesium Icon资源key设置
+   */
   private initBaseConfig() {
-    //默认打开深度检测，那么在地形以下的对象不可见
+    // Cesium Icon资源key
+    Cesium.Ion.defaultAccessToken = this.options?.defaultKey || CesiumIcon
+
+    // 地形交互配置，深度监测
     this.scene.globe.depthTestAgainstTerrain = true
-    //是否显示星空
+
+    // 天体显示配置
     this.scene.skyBox.show = true
-    //是否显示太阳
     this.scene.sun.show = true
-    //是否显示有月亮
     this.scene.moon.show = false
-    //是否隐藏大气层
     this.scene.skyAtmosphere.show = true
-    //全球光照
+
+    // 光照配置
     this.scene.globe.enableLighting = true
-    // 1.0代表真实时间速率，大于1则加速，小于1则减速
+
+    // 时间系统配置
     this.clock.multiplier = 1
-    //禁止相机进入地下 false允许，true禁止
+
+    // 相机碰撞检测
     this.scene.screenSpaceCameraController.enableCollisionDetection = true
-    //隐藏版本信息
+
+    // 显示帧率
+    this.scene.debugShowFramesPerSecond = this.options?.fpsShow || false
+
+    // 隐藏版权信息
     ;(this.cesiumWidget.creditContainer as any).style.display = "none"
 
-    this.resolutionScale = window.devicePixelRatio //高分辨率设备适配
+    // 高分辨率适配，支持图像渲染像素化处理
+    this.resolutionScale = window.devicePixelRatio
+
+    // 开启抗锯齿
+    this.scene.postProcessStages.fxaa.enabled = true
+
+    // Mapbox控制模式
+    if (this.options?.mapboxController) {
+      // 设置中键用于缩放
+      this.scene.screenSpaceCameraController.zoomEventTypes = [
+        Cesium.CameraEventType.WHEEL, // 保留滚轮缩放
+        Cesium.CameraEventType.MIDDLE_DRAG, // 添加中键拖动缩放
+        Cesium.CameraEventType.PINCH, // 保留多点触控缩放
+      ]
+      //设置右键旋转
+      this.scene.screenSpaceCameraController.tiltEventTypes = [
+        Cesium.CameraEventType.RIGHT_DRAG,
+        Cesium.CameraEventType.PINCH,
+        {
+          eventType: Cesium.CameraEventType.RIGHT_DRAG,
+          modifier: Cesium.KeyboardEventModifier.CTRL,
+        },
+
+        {
+          eventType: Cesium.CameraEventType.MIDDLE_DRAG,
+          modifier: Cesium.KeyboardEventModifier.CTRL,
+        },
+      ]
+    }
+  }
+
+  /**
+   * @method
+   * @description 测试方法，输出'test'到控制台
+   */
+  test() {
+    console.log("test")
+  }
+  /**
+   * 控制帧率显示
+   * @type {Boolean}
+   */
+  get fps() {
+    return this.scene.debugShowFramesPerSecond
+  }
+  set fps(show) {
+    this.scene.debugShowFramesPerSecond = show // 显示帧率
   }
 }
+export default Viewer

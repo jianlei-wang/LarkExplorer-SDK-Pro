@@ -1,21 +1,32 @@
-import { ScreenSpaceEventType, ScreenSpaceEventHandler, Viewer } from "cesium"
+import { ScreenSpaceEventHandler, Viewer } from "cesium"
+import { Events, EventType } from "src/types"
+import { eventNameMap } from "./DefineObject"
 
-type Events = Map<EventType, Function[]>
-
-//基于Cesium的ScreenSpaceEventHandler拓展，使其支持回调列表；
-export class CesiumEventEmitter {
+// 基于 Cesium 的屏幕空间事件处理器扩展类，支持多回调函数管理
+class EventEmitter {
+  /**
+   * @param {Viewer} viewer - Cesium 的视图器对象
+   * @description
+   * 基于 Cesium 的屏幕空间事件处理器扩展类，支持多回调函数管理
+   * @example
+   * const emitter = new EventEmitter(viewer);
+   * emitter.on('leftClick', (event) => console.log('Clicked:', event.position));
+   */
   constructor(public viewer: Viewer) {}
+
+  /** @private 原生的 Cesium 屏幕空间事件处理器 */
   private handler = new ScreenSpaceEventHandler(this.viewer.canvas)
-  // 用于存储事件及其回调函数的映射
+
+  /** @private 存储事件及其回调函数的映射表 */
   private events: Events = new Map()
 
   /**
-   * 绑定事件
-   * @param eventName 事件名称
-   * @param callback 回调函数
+   * 绑定指定事件类型的回调函数
+   * @param {EventType} eventName - 要监听的事件名称（参见 eventNameMap 的键名）
+   * @param {Function} callback - 事件触发时的回调函数
+   * @throws {Error} 当 eventName 不是有效的事件类型时
    */
   on(eventName: EventType, callback: Function): void {
-    // 如果事件不存在，初始化一个空数组
     if (!this.events.has(eventName)) {
       this.events.set(eventName, [])
       this.handler.setInputAction((...args: any[]) => {
@@ -25,59 +36,34 @@ export class CesiumEventEmitter {
         })
       }, eventNameMap[eventName])
     }
-    // 将回调函数添加到事件列表中
     this.events.get(eventName)!.push(callback)
   }
 
   /**
-   * 取消绑定事件
-   * @param eventName 事件名称
-   * @param callback 要移除的回调函数（可选）
+   * 移除指定事件类型的回调函数
+   * @param {EventType} eventName - 要移除的事件名称
+   * @param {Function} [callback] - 要移除的特定回调函数（不传则移除该事件所有回调）
    */
   off(eventName: EventType, callback?: Function): void {
     if (!this.events.has(eventName)) return
 
     if (callback) {
-      // 移除指定的回调函数
       const callbacks = this.events.get(eventName)!
       const index = callbacks.indexOf(callback)
       if (index !== -1) {
         callbacks.splice(index, 1)
       }
     } else {
-      // 移除所有回调函数
       this.events.delete(eventName)
     }
   }
 
   /**
-   * 清空所有事件
+   * 清空所有已注册的事件和回调
    */
   clear(): void {
     this.events.clear()
   }
 }
 
-export const eventNameMap = {
-  leftdown: ScreenSpaceEventType.LEFT_DOWN,
-  leftup: ScreenSpaceEventType.LEFT_UP,
-  click: ScreenSpaceEventType.LEFT_CLICK,
-  dblclick: ScreenSpaceEventType.LEFT_DOUBLE_CLICK,
-
-  rightdown: ScreenSpaceEventType.RIGHT_DOWN,
-  rightup: ScreenSpaceEventType.RIGHT_UP,
-  rightclick: ScreenSpaceEventType.RIGHT_CLICK,
-
-  middledown: ScreenSpaceEventType.MIDDLE_DOWN,
-  middleup: ScreenSpaceEventType.MIDDLE_UP,
-  middleclick: ScreenSpaceEventType.MIDDLE_CLICK,
-
-  mousemove: ScreenSpaceEventType.MOUSE_MOVE,
-  wheel: ScreenSpaceEventType.WHEEL,
-
-  pinchstart: ScreenSpaceEventType.PINCH_START,
-  pinchend: ScreenSpaceEventType.PINCH_END,
-  pinchmove: ScreenSpaceEventType.PINCH_MOVE,
-}
-
-export type EventType = keyof typeof eventNameMap
+export default EventEmitter

@@ -18,14 +18,6 @@ release: 发布新版本
 workflow: 工作流相关文件修改
 ```
 
-### $\colorbox{green}{000 当前版本 }$
-
-#### 更新时间
-
-```time
-```
+### $\colorbox{blue}{000 当前版本 }$
 
 #### 更新内容
-
-```content
-```
