@@ -1,6 +1,6 @@
 {
   "name": "larkexplorer-sdk-pro",
-  "version": "0.0.2",
+  "version": "0.0.42",
   "main": "dist/larkexplorer.esm.js",
   "module": "dist/larkexplorer.esm.js",
   "types": "dist/index.d.ts",

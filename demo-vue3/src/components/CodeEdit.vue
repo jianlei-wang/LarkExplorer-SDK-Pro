@@ -1,17 +1,21 @@
 <script setup lang="ts">
-import { reactive, ref, onBeforeMount, onMounted } from "vue"
+import { ref, onBeforeMount } from "vue"
 import { Codemirror } from "vue-codemirror"
 import { oneDark } from "@codemirror/theme-one-dark"
 import { javascript } from "@codemirror/lang-javascript"
-import { DocumentCopy, Fold, Expand } from "@element-plus/icons-vue"
+import {
+  DocumentCopy,
+  Fold,
+  Expand,
+  VideoPlay,
+  Download,
+  Refresh,
+} from "@element-plus/icons-vue"
 import useClipboard from "vue-clipboard3"
 import { ElMessage } from "element-plus"
 defineOptions({ inheritAttrs: false, name: "代码编辑组件" })
 const props = defineProps({
-  curCode: {
-    type: String,
-    default: "",
-  },
+  curCode: { type: String, default: "" },
 })
 const emits = defineEmits(["writeCode", "updateMenu"])
 const baseCode = ref("")
@@ -27,9 +31,9 @@ onBeforeMount(() => {
 const finish = ref(false)
 const tools = [
   { id: "copy", name: "复制", icon: DocumentCopy },
-  { id: "run", name: "运行", icon: DocumentCopy },
-  { id: "refresh", name: "刷新", icon: DocumentCopy },
-  { id: "download", name: "下载", icon: DocumentCopy },
+  { id: "run", name: "运行", icon: VideoPlay },
+  { id: "refresh", name: "刷新", icon: Refresh },
+  { id: "download", name: "下载", icon: Download },
 ]
 const { toClipboard } = useClipboard()
 const startTool = (id: string) => {

@@ -7,7 +7,7 @@ import {
   Terrain,
   CesiumTerrainProvider,
 } from "cesium"
-import { getStaticFile } from "src/utils/Generate"
+import globeImg from "src/static/globe-img"
 import { getTdtOption } from "src/utils/imagery/ImageryOption"
 
 /**
@@ -20,9 +20,8 @@ const BaseLayer = {
    * @type {ImageryLayer}
    */
   get DefaultSingleImg() {
-    const img = getStaticFile("globe.jpg")
     return ImageryLayer.fromProviderAsync(
-      SingleTileImageryProvider.fromUrl(img),
+      SingleTileImageryProvider.fromUrl(globeImg),
       {}
     )
   },

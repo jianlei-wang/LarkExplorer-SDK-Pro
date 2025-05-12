@@ -3,7 +3,7 @@
  * @Author: jianlei wang
  * @Date: 2025-04-23 09:42:04
  * @Last Modified by: jianlei wang
- * @Last Modified time: 2025-04-23 11:07:26
+ * @Last Modified time: 2025-05-12 16:18:53
  */
 
 /**
@@ -15,13 +15,4 @@ export function randomId() {
   const uuid = tempUrl.toString()
   URL.revokeObjectURL(tempUrl)
   return uuid.substring(uuid.lastIndexOf("/") + 1)
-}
-
-/**
- * 获取静态资源文件
- * @param path 静态资源路径
- * @returns 静态资源在线路径
- */
-export function getStaticFile(path: string) {
-  return new URL(`./static/${path}`, import.meta.url).href
 }

@@ -37,7 +37,7 @@ const curCode = ref("")
 const updateHtml = async (data: any) => {
   const { id, label } = data
   const name = id + "-" + label
-  const code = await fetchHtmlContent(`./html/${name}.html`)
+  const code = await fetchHtmlContent(`./${name}.html`)
   updateCode(code)
   document.title = name
 }
@@ -67,7 +67,7 @@ async function fetchHtmlContent(path: string): Promise<string> {
   <div class="demo-main">
     <Header></Header>
     <div class="main-content">
-      <MenuTree v-if="show" @update-menu="updateHtml"></MenuTree>
+      <MenuTree v-show="show" @update-menu="updateHtml"></MenuTree>
       <div class="project-main">
         <CodeEdit
           :cur-code="curCode"
