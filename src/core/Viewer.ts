@@ -25,7 +25,6 @@ interface ViewOption extends Cesium.Viewer.ConstructorOptions {
   mapboxController?: boolean
 }
 
-// 增强版地图场景类，继承自 Cesium.Viewer，提供了更丰富的功能和配置选项。
 class Viewer extends Cesium.Viewer {
   /**
    * 创建地图场景实例
@@ -82,7 +81,7 @@ class Viewer extends Cesium.Viewer {
    * Cesium事件发射器实例
    * @type {EventEmitter}
    */
-  public eventEmitter: EventEmitter = new EventEmitter(this)
+  public EventEmitter: EventEmitter = new EventEmitter(this)
 
   /**
    * 初始化基础场景配置

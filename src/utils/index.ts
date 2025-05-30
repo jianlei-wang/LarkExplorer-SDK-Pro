@@ -1,1 +1,1 @@
-export {}
+export { EventNameMap } from "./DefineObject"

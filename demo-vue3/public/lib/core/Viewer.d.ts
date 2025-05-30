@@ -34,7 +34,7 @@ declare class Viewer extends Cesium.Viewer {
      * Cesium事件发射器实例
      * @type {EventEmitter}
      */
-    eventEmitter: EventEmitter;
+    EventEmitter: EventEmitter;
     /**
      * 初始化基础场景配置
      * @private

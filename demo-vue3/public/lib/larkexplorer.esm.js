@@ -68,7 +68,7 @@ typeof SuppressedError === "function" ? SuppressedError : function (error, suppr
  * @property {ScreenSpaceEventType} pinchEnd - 触摸屏双指手势结束事件
  * @property {ScreenSpaceEventType} pinchMove - 触摸屏双指手势移动事件
  */
-var eventNameMap = {
+var EventNameMap = {
     leftDown: ScreenSpaceEventType.LEFT_DOWN,
     leftUp: ScreenSpaceEventType.LEFT_UP,
     leftClick: ScreenSpaceEventType.LEFT_CLICK,
@@ -86,9 +86,9 @@ var eventNameMap = {
     pinchMove: ScreenSpaceEventType.PINCH_MOVE,
 };
 
-// 基于 Cesium 的屏幕空间事件处理器扩展类，支持多回调函数管理
 var EventEmitter = /** @class */ (function () {
     /**
+     * 创建事件处理器实例
      * @param {Viewer} viewer - Cesium 的视图器对象
      * @description
      * 基于 Cesium 的屏幕空间事件处理器扩展类，支持多回调函数管理
@@ -122,7 +122,7 @@ var EventEmitter = /** @class */ (function () {
                 callbacks === null || callbacks === void 0 ? void 0 : callbacks.forEach(function (callback) {
                     callback.apply(void 0, args);
                 });
-            }, eventNameMap[eventName]);
+            }, EventNameMap[eventName]);
         }
         this.events.get(eventName).push(callback);
     };
@@ -244,7 +244,6 @@ var BaseLayer = {
 
 // 设置默认相机观察范围（覆盖Cesium默认设置）
 Cesium.Camera.DEFAULT_VIEW_RECTANGLE = new Cesium.Rectangle(Cesium.Math.toRadians(70), Cesium.Math.toRadians(-15), Cesium.Math.toRadians(140), Cesium.Math.toRadians(80));
-// 增强版地图场景类，继承自 Cesium.Viewer，提供了更丰富的功能和配置选项。
 var Viewer = /** @class */ (function (_super) {
     __extends(Viewer, _super);
     /**
@@ -281,7 +280,7 @@ var Viewer = /** @class */ (function (_super) {
          * Cesium事件发射器实例
          * @type {EventEmitter}
          */
-        _this.eventEmitter = new EventEmitter(_this);
+        _this.EventEmitter = new EventEmitter(_this);
         _this.initBaseConfig();
         return _this;
     }
@@ -370,5 +369,5 @@ var Viewer = /** @class */ (function (_super) {
     return Viewer;
 }(Cesium.Viewer));
 
-export { BaseLayer, Viewer };
+export { BaseLayer, EventNameMap, Viewer };
 //# sourceMappingURL=larkexplorer.esm.js.map

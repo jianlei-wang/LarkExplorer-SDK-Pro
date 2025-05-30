@@ -1,10 +1,10 @@
 import { ScreenSpaceEventHandler, Viewer } from "cesium"
 import { Events, EventType } from "src/types"
-import { eventNameMap } from "./DefineObject"
+import { EventNameMap } from "../utils/DefineObject"
 
-// 基于 Cesium 的屏幕空间事件处理器扩展类，支持多回调函数管理
 class EventEmitter {
   /**
+   * 创建事件处理器实例
    * @param {Viewer} viewer - Cesium 的视图器对象
    * @description
    * 基于 Cesium 的屏幕空间事件处理器扩展类，支持多回调函数管理
@@ -34,7 +34,7 @@ class EventEmitter {
         callbacks?.forEach((callback) => {
           callback(...args)
         })
-      }, eventNameMap[eventName])
+      }, EventNameMap[eventName])
     }
     this.events.get(eventName)!.push(callback)
   }

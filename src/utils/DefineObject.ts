@@ -20,7 +20,7 @@ import { ScreenSpaceEventType } from "cesium"
  * @property {ScreenSpaceEventType} pinchEnd - 触摸屏双指手势结束事件
  * @property {ScreenSpaceEventType} pinchMove - 触摸屏双指手势移动事件
  */
-export const eventNameMap = {
+export const EventNameMap = {
   leftDown: ScreenSpaceEventType.LEFT_DOWN,
   leftUp: ScreenSpaceEventType.LEFT_UP,
   leftClick: ScreenSpaceEventType.LEFT_CLICK,
