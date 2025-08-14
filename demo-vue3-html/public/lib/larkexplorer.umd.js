@@ -190,7 +190,7 @@
      * @param token 天地图token
      * @returns
      */
-    var getTdtOption = function (type, token) {
+    function getTdtOption(type, token) {
         if (token === void 0) { token = TDT_KEY; }
         var url = "https://{s}.tianditu.gov.cn/".concat(type, "_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=").concat(type, "&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILECOL={TileCol}&TILEROW={TileRow}&TILEMATRIX={TileMatrix}&TILEMATRIX={TileMatrix}&tk=").concat(token);
         return {
@@ -203,7 +203,7 @@
             subdomains: ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"],
             token: token,
         };
-    };
+    }
 
     /**
      * 基础图层类，包括影像底图和地形底图
@@ -265,6 +265,21 @@
         },
     };
 
+    /**
+     * 获取地图尺寸
+     */
+    function mapSize(viewer) {
+        var _a = viewer.canvas, width = _a.width, height = _a.height;
+        return { width: width, height: height };
+    }
+    /**
+     * 获取地图图片
+     */
+    function mapImg(viewer) {
+        viewer.render(); //避免出现导出是一张黑乎乎的图片
+        return viewer.scene.canvas.toDataURL("image/png");
+    }
+
     // 设置默认相机观察范围（覆盖Cesium默认设置）
     Cesium__namespace.Camera.DEFAULT_VIEW_RECTANGLE = new Cesium__namespace.Rectangle(Cesium__namespace.Math.toRadians(70), Cesium__namespace.Math.toRadians(-15), Cesium__namespace.Math.toRadians(140), Cesium__namespace.Math.toRadians(80));
     var Viewer = /** @class */ (function (_super) {
@@ -303,7 +318,7 @@
              * Cesium事件发射器实例
              * @type {EventEmitter}
              */
-            _this.EventEmitter = new EventEmitter(_this);
+            _this.EventHandler = new EventEmitter(_this);
             _this.initBaseConfig();
             return _this;
         }
@@ -368,13 +383,6 @@
                 ];
             }
         };
-        /**
-         * @method
-         * @description 测试方法，输出'test'到控制台
-         */
-        Viewer.prototype.test = function () {
-            console.log("test");
-        };
         Object.defineProperty(Viewer.prototype, "fps", {
             /**
              * 控制帧率显示
@@ -385,6 +393,51 @@
             },
             set: function (show) {
                 this.scene.debugShowFramesPerSecond = show; // 显示帧率
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(Viewer.prototype, "size", {
+            /**
+             * 地图画布大小，例如：{width:1920,height:1080}
+             * @type {Object}
+             * @readonly
+             */
+            get: function () {
+                return mapSize(this);
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(Viewer.prototype, "image", {
+            /**
+             * 当前地图场景图片，base64格式
+             * @type {String}
+             * @readonly
+             */
+            get: function () {
+                return mapImg(this);
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(Viewer.prototype, "baseImagery", {
+            /**
+             * 场景底图
+             * Cesium机制是最底层的图层为_isBaseLayer，通过lowerToBottom来控制
+             * @type {Cesium.ImageryLayer} imagery 参考Cesium的ImageryLayer
+             */
+            get: function () {
+                //@ts-ignore
+                var layers = this.imageryLayers._layers;
+                var baseLayer = layers.find(function (layer) { return layer._isBaseLayer; });
+                return baseLayer;
+            },
+            set: function (imagery) {
+                //@ts-ignore
+                var baseLayer = this.imageryLayers._layers.find(function (layer) { return layer._isBaseLayer; });
+                baseLayer && this.imageryLayers.remove(baseLayer);
+                this.imageryLayers.lowerToBottom(imagery);
             },
             enumerable: false,
             configurable: true

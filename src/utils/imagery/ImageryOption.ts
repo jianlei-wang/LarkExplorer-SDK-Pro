@@ -6,10 +6,10 @@ import { TDT_KEY } from "../Default"
  * @param token 天地图token
  * @returns
  */
-export const getTdtOption = (
+export function getTdtOption(
   type: "img" | "vec" | "cva" | "cia",
   token = TDT_KEY
-) => {
+) {
   const url = `https://{s}.tianditu.gov.cn/${type}_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${type}&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILECOL={TileCol}&TILEROW={TileRow}&TILEMATRIX={TileMatrix}&TILEMATRIX={TileMatrix}&tk=${token}`
   return {
     url: url,

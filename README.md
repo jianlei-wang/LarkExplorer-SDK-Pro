@@ -40,12 +40,6 @@ onMounted(() => {
   nextTick(() => {
     window.viewer = new Viewer('map', {
       baseLayer: BaseLayer.DefaultSingleImg,
-      baseLayer: new Cesium.ImageryLayer(
-        new Cesium.UrlTemplateImageryProvider({
-          url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}.png',
-          maximumLevel: 17,
-        })
-      ),
     });
     console.log(window.viewer);
   });

@@ -18,6 +18,10 @@ release: 发布新版本
 workflow: 工作流相关文件修改
 ```
 
-### $\colorbox{blue}{000 当前版本 }$
+### $\colorbox{blue}{000 2025 }$
 
 #### 更新内容
+
+feat: 新功能、新特性
+
+1. Viewer增加size、image、fps、baseImagery参数

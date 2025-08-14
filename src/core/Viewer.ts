@@ -2,6 +2,7 @@ import * as Cesium from "cesium"
 import EventEmitter from "./EventEmitter"
 import { CesiumIcon } from "src/utils/Default"
 import BaseLayer from "./BaseLayer"
+import { mapImg, mapSize } from "src/utils/Navigation"
 
 // 设置默认相机观察范围（覆盖Cesium默认设置）
 Cesium.Camera.DEFAULT_VIEW_RECTANGLE = new Cesium.Rectangle(
@@ -81,7 +82,7 @@ class Viewer extends Cesium.Viewer {
    * Cesium事件发射器实例
    * @type {EventEmitter}
    */
-  public EventEmitter: EventEmitter = new EventEmitter(this)
+  public EventHandler: EventEmitter = new EventEmitter(this)
 
   /**
    * 初始化基础场景配置
@@ -157,13 +158,6 @@ class Viewer extends Cesium.Viewer {
   }
 
   /**
-   * @method
-   * @description 测试方法，输出'test'到控制台
-   */
-  test() {
-    console.log("test")
-  }
-  /**
    * 控制帧率显示
    * @type {Boolean}
    */
@@ -172,6 +166,45 @@ class Viewer extends Cesium.Viewer {
   }
   set fps(show) {
     this.scene.debugShowFramesPerSecond = show // 显示帧率
+  }
+
+  /**
+   * 地图画布大小，例如：{width:1920,height:1080}
+   * @type {Object}
+   * @readonly
+   */
+  get size() {
+    return mapSize(this)
+  }
+
+  /**
+   * 当前地图场景图片，base64格式
+   * @type {String}
+   * @readonly
+   */
+  get image() {
+    return mapImg(this)
+  }
+
+  /**
+   * 场景底图
+   * Cesium机制是最底层的图层为_isBaseLayer，通过lowerToBottom来控制
+   * @type {Cesium.ImageryLayer} imagery 参考Cesium的ImageryLayer
+   */
+  get baseImagery() {
+    //@ts-ignore
+    const layers = this.imageryLayers._layers
+    const baseLayer = layers.find((layer: any) => layer._isBaseLayer)
+    return baseLayer
+  }
+
+  set baseImagery(imagery: Cesium.ImageryLayer) {
+    //@ts-ignore
+    const baseLayer = this.imageryLayers._layers.find(
+      (layer: any) => layer._isBaseLayer
+    )
+    baseLayer && this.imageryLayers.remove(baseLayer)
+    this.imageryLayers.lowerToBottom(imagery)
   }
 }
 export default Viewer

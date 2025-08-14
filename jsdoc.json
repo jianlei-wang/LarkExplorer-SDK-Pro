@@ -4,7 +4,10 @@
     "include": [
       "src/core/Viewer.ts",
       "src/core/EventEmitter.ts",
-      "src/core/DefineObject.ts"
+
+      "src/utils/DefineObject.ts",
+
+      "src/types/index.ts"
     ],
     "includePattern": "\\.(jsx|js|ts|tsx)$"
   },
