@@ -13,7 +13,7 @@ const sdkVersion = () => {
     <img src="/Logo.svg" alt="" width="80" />
     <span class="title">LarkExplorer SDK Pro</span>
     <span class="version">{{ versionList[0] }}</span>
-    <span class="version">Demo For Cesium v1.122.0</span>
+    <span class="version">Demo For Cesium ^1.133.1</span>
     <span class="info">
       <label class="sdk-text" @click="sdkVersion">SDK下载</label>
       <a

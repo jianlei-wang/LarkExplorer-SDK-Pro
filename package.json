@@ -23,9 +23,6 @@
     "nodejsVersion": "v18.20.4"
   },
   "description": "基于开源项目 Cesium 封装的 WebGis 应用框架",
-  "peerDependencies": {
-    "cesium": "1.122.0"
-  },
   "devDependencies": {
     "@rollup/plugin-typescript": "^12.1.1",
     "better-docs": "^2.7.3",
@@ -47,5 +44,8 @@
     "README.md",
     "CHANGES.md",
     "LOG.md"
-  ]
+  ],
+  "dependencies": {
+    "cesium": "^1.133.1"
+  }
 }
