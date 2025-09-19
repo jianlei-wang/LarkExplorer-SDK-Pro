@@ -2,6 +2,7 @@
 import { reactive, ref, onBeforeMount, onMounted } from "vue"
 
 defineOptions({ inheritAttrs: false, name: "标题栏" })
+
 const versionList = ref(["v0.0.2"])
 const show = ref(false)
 const sdkVersion = () => {
