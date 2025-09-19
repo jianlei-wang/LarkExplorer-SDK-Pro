@@ -1,28 +1,5 @@
-'use strict';
-
-Object.defineProperty(exports, '__esModule', { value: true });
-
-var Cesium = require('cesium');
-
-function _interopNamespace(e) {
-    if (e && e.__esModule) return e;
-    var n = Object.create(null);
-    if (e) {
-        Object.keys(e).forEach(function (k) {
-            if (k !== 'default') {
-                var d = Object.getOwnPropertyDescriptor(e, k);
-                Object.defineProperty(n, k, d.get ? d : {
-                    enumerable: true,
-                    get: function () { return e[k]; }
-                });
-            }
-        });
-    }
-    n["default"] = e;
-    return Object.freeze(n);
-}
-
-var Cesium__namespace = /*#__PURE__*/_interopNamespace(Cesium);
+import * as Cesium from 'cesium';
+import { ScreenSpaceEventType, ScreenSpaceEventHandler, ImageryLayer, SingleTileImageryProvider, ArcGisMapServerImageryProvider, WebMapTileServiceImageryProvider, createWorldTerrainAsync, Terrain as Terrain$1, CesiumTerrainProvider, NearFarScalar } from 'cesium';
 
 /******************************************************************************
 Copyright (c) Microsoft Corporation.
@@ -92,21 +69,21 @@ typeof SuppressedError === "function" ? SuppressedError : function (error, suppr
  * @property {ScreenSpaceEventType} pinchMove - 触摸屏双指手势移动事件
  */
 var EventNameMap = {
-    leftDown: Cesium.ScreenSpaceEventType.LEFT_DOWN,
-    leftUp: Cesium.ScreenSpaceEventType.LEFT_UP,
-    leftClick: Cesium.ScreenSpaceEventType.LEFT_CLICK,
-    leftDblClick: Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK,
-    rightDown: Cesium.ScreenSpaceEventType.RIGHT_DOWN,
-    rightUp: Cesium.ScreenSpaceEventType.RIGHT_UP,
-    rightClick: Cesium.ScreenSpaceEventType.RIGHT_CLICK,
-    middleDown: Cesium.ScreenSpaceEventType.MIDDLE_DOWN,
-    middleUp: Cesium.ScreenSpaceEventType.MIDDLE_UP,
-    middleClick: Cesium.ScreenSpaceEventType.MIDDLE_CLICK,
-    mouseMove: Cesium.ScreenSpaceEventType.MOUSE_MOVE,
-    wheel: Cesium.ScreenSpaceEventType.WHEEL,
-    pinchStart: Cesium.ScreenSpaceEventType.PINCH_START,
-    pinchEnd: Cesium.ScreenSpaceEventType.PINCH_END,
-    pinchMove: Cesium.ScreenSpaceEventType.PINCH_MOVE,
+    leftDown: ScreenSpaceEventType.LEFT_DOWN,
+    leftUp: ScreenSpaceEventType.LEFT_UP,
+    leftClick: ScreenSpaceEventType.LEFT_CLICK,
+    leftDblClick: ScreenSpaceEventType.LEFT_DOUBLE_CLICK,
+    rightDown: ScreenSpaceEventType.RIGHT_DOWN,
+    rightUp: ScreenSpaceEventType.RIGHT_UP,
+    rightClick: ScreenSpaceEventType.RIGHT_CLICK,
+    middleDown: ScreenSpaceEventType.MIDDLE_DOWN,
+    middleUp: ScreenSpaceEventType.MIDDLE_UP,
+    middleClick: ScreenSpaceEventType.MIDDLE_CLICK,
+    mouseMove: ScreenSpaceEventType.MOUSE_MOVE,
+    wheel: ScreenSpaceEventType.WHEEL,
+    pinchStart: ScreenSpaceEventType.PINCH_START,
+    pinchEnd: ScreenSpaceEventType.PINCH_END,
+    pinchMove: ScreenSpaceEventType.PINCH_MOVE,
 };
 
 var EventEmitter = /** @class */ (function () {
@@ -122,7 +99,7 @@ var EventEmitter = /** @class */ (function () {
     function EventEmitter(viewer) {
         this.viewer = viewer;
         /** @private 原生的 Cesium 屏幕空间事件处理器 */
-        this.handler = new Cesium.ScreenSpaceEventHandler(this.viewer.canvas);
+        this.handler = new ScreenSpaceEventHandler(this.viewer.canvas);
         /** @private 存储事件及其回调函数的映射表 */
         this.events = new Map();
     }
@@ -215,7 +192,7 @@ var BaseLayer = {
      * @type {ImageryLayer}
      */
     get DefaultSingleImg() {
-        return Cesium.ImageryLayer.fromProviderAsync(Cesium.SingleTileImageryProvider.fromUrl(globeImg), {});
+        return ImageryLayer.fromProviderAsync(SingleTileImageryProvider.fromUrl(globeImg), {});
     },
     /**
      * 默认arcgis底图
@@ -223,7 +200,7 @@ var BaseLayer = {
      * @type {ImageryLayer}
      */
     get DefaultArcgisImg() {
-        return Cesium.ImageryLayer.fromProviderAsync(Cesium.ArcGisMapServerImageryProvider.fromUrl("https://services.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer"), {});
+        return ImageryLayer.fromProviderAsync(ArcGisMapServerImageryProvider.fromUrl("https://services.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer"), {});
     },
     /**
      * 默认天地图影像地图
@@ -232,7 +209,7 @@ var BaseLayer = {
      */
     get DefaultTdtImg() {
         var option = getTdtOption("img");
-        return Cesium.ImageryLayer.fromProviderAsync(Promise.resolve(new Cesium.WebMapTileServiceImageryProvider(option)), {});
+        return ImageryLayer.fromProviderAsync(Promise.resolve(new WebMapTileServiceImageryProvider(option)), {});
     },
     /**
      * 默认天地图矢量地图
@@ -241,7 +218,7 @@ var BaseLayer = {
      */
     get DefaultTdtVec() {
         var option = getTdtOption("vec");
-        return Cesium.ImageryLayer.fromProviderAsync(Promise.resolve(new Cesium.WebMapTileServiceImageryProvider(option)), {});
+        return ImageryLayer.fromProviderAsync(Promise.resolve(new WebMapTileServiceImageryProvider(option)), {});
     },
     /**
      * 默认全球地形
@@ -249,11 +226,11 @@ var BaseLayer = {
      * @type {Terrain}
      */
     get DefaultTerrain() {
-        var terrainProvider = Cesium.createWorldTerrainAsync({
+        var terrainProvider = createWorldTerrainAsync({
             requestWaterMask: true,
             requestVertexNormals: true,
         });
-        return new Cesium.Terrain(terrainProvider);
+        return new Terrain$1(terrainProvider);
     },
     /**
      * 获取tms格式地形
@@ -261,7 +238,7 @@ var BaseLayer = {
      * @returns {Terrain} - tms格式地形对象
      */
     getTerrain: function (url) {
-        return new Cesium.Terrain(Cesium.CesiumTerrainProvider.fromUrl(url));
+        return new Terrain$1(CesiumTerrainProvider.fromUrl(url));
     },
 };
 
@@ -328,7 +305,7 @@ var Terrain = /** @class */ (function () {
          */
         set: function (bool) {
             var terrain = boolTerrain(this._viewer);
-            if (Boolean(terrain) === bool)
+            if (!terrain)
                 return;
             this.exaggeration = bool ? 1 : 0;
         },
@@ -387,7 +364,7 @@ var Terrain = /** @class */ (function () {
     };
     Terrain.prototype._updateTranslucency = function (bool) {
         this._viewer.scene.globe.translucency.frontFaceAlphaByDistance =
-            new Cesium.NearFarScalar(1.5e2, 0.5, 8.0e6, 1.0);
+            new NearFarScalar(1.5e2, 0.5, 8.0e6, 1.0);
         this._viewer.scene.globe.translucency.enabled = bool; //是否开启透明
         this._updateAlpha(this._alpha);
     };
@@ -395,7 +372,7 @@ var Terrain = /** @class */ (function () {
 }());
 
 // 设置默认相机观察范围（覆盖Cesium默认设置）
-Cesium__namespace.Camera.DEFAULT_VIEW_RECTANGLE = new Cesium__namespace.Rectangle(Cesium__namespace.Math.toRadians(70), Cesium__namespace.Math.toRadians(-15), Cesium__namespace.Math.toRadians(140), Cesium__namespace.Math.toRadians(80));
+Cesium.Camera.DEFAULT_VIEW_RECTANGLE = new Cesium.Rectangle(Cesium.Math.toRadians(70), Cesium.Math.toRadians(-15), Cesium.Math.toRadians(140), Cesium.Math.toRadians(80));
 var Viewer = /** @class */ (function (_super) {
     __extends(Viewer, _super);
     /**
@@ -415,7 +392,7 @@ var Viewer = /** @class */ (function (_super) {
     function Viewer(container, options) {
         var _this = _super.call(this, container, __assign({ 
             // 基础配置
-            animation: false, fullscreenButton: false, geocoder: false, homeButton: false, infoBox: false, sceneModePicker: false, timeline: false, sceneMode: Cesium__namespace.SceneMode.SCENE3D, scene3DOnly: true, baseLayerPicker: false, navigationHelpButton: false, vrButton: false, selectionIndicator: false, orderIndependentTranslucency: true, shouldAnimate: true, baseLayer: BaseLayer.DefaultSingleImg, 
+            animation: false, fullscreenButton: false, geocoder: false, homeButton: false, infoBox: false, sceneModePicker: false, timeline: false, sceneMode: Cesium.SceneMode.SCENE3D, scene3DOnly: true, baseLayerPicker: false, navigationHelpButton: false, vrButton: false, selectionIndicator: false, orderIndependentTranslucency: true, shouldAnimate: true, baseLayer: BaseLayer.DefaultSingleImg, 
             // WebGL上下文配置
             contextOptions: {
                 webgl: {
@@ -454,7 +431,7 @@ var Viewer = /** @class */ (function (_super) {
     Viewer.prototype.initBaseConfig = function () {
         var _a, _b, _c;
         // Cesium Icon资源key
-        Cesium__namespace.Ion.defaultAccessToken = ((_a = this.options) === null || _a === void 0 ? void 0 : _a.defaultKey) || CesiumIcon;
+        Cesium.Ion.defaultAccessToken = ((_a = this.options) === null || _a === void 0 ? void 0 : _a.defaultKey) || CesiumIcon;
         // 地形交互配置，深度监测
         this.scene.globe.depthTestAgainstTerrain = true;
         // 天体显示配置
@@ -479,21 +456,21 @@ var Viewer = /** @class */ (function (_super) {
         if ((_c = this.options) === null || _c === void 0 ? void 0 : _c.mapboxController) {
             // 设置中键用于缩放
             this.scene.screenSpaceCameraController.zoomEventTypes = [
-                Cesium__namespace.CameraEventType.WHEEL, // 保留滚轮缩放
-                Cesium__namespace.CameraEventType.MIDDLE_DRAG, // 添加中键拖动缩放
-                Cesium__namespace.CameraEventType.PINCH, // 保留多点触控缩放
+                Cesium.CameraEventType.WHEEL, // 保留滚轮缩放
+                Cesium.CameraEventType.MIDDLE_DRAG, // 添加中键拖动缩放
+                Cesium.CameraEventType.PINCH, // 保留多点触控缩放
             ];
             //设置右键旋转
             this.scene.screenSpaceCameraController.tiltEventTypes = [
-                Cesium__namespace.CameraEventType.RIGHT_DRAG,
-                Cesium__namespace.CameraEventType.PINCH,
+                Cesium.CameraEventType.RIGHT_DRAG,
+                Cesium.CameraEventType.PINCH,
                 {
-                    eventType: Cesium__namespace.CameraEventType.RIGHT_DRAG,
-                    modifier: Cesium__namespace.KeyboardEventModifier.CTRL,
+                    eventType: Cesium.CameraEventType.RIGHT_DRAG,
+                    modifier: Cesium.KeyboardEventModifier.CTRL,
                 },
                 {
-                    eventType: Cesium__namespace.CameraEventType.MIDDLE_DRAG,
-                    modifier: Cesium__namespace.KeyboardEventModifier.CTRL,
+                    eventType: Cesium.CameraEventType.MIDDLE_DRAG,
+                    modifier: Cesium.KeyboardEventModifier.CTRL,
                 },
             ];
         }
@@ -558,9 +535,7 @@ var Viewer = /** @class */ (function (_super) {
         configurable: true
     });
     return Viewer;
-}(Cesium__namespace.Viewer));
+}(Cesium.Viewer));
 
-exports.BaseLayer = BaseLayer;
-exports.EventNameMap = EventNameMap;
-exports.Viewer = Viewer;
-//# sourceMappingURL=larkexplorer.cjs.js.map
+export { BaseLayer, EventNameMap, Viewer };
+//# sourceMappingURL=larkexplorer.esm.js.map

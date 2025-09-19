@@ -280,6 +280,120 @@
         return viewer.scene.canvas.toDataURL("image/png");
     }
 
+    /**
+     * 判断是否已经加载地形数据
+     * @param viewer - 地图场景
+     * @returns 是否已经加载地形
+     */
+    var boolTerrain = function (viewer) {
+        return viewer.terrainProvider.availability;
+    };
+
+    var Terrain = /** @class */ (function () {
+        function Terrain(viewer) {
+            this._viewer = viewer;
+            this._alpha = 1.0;
+            this._updateTranslucency(false);
+        }
+        Object.defineProperty(Terrain.prototype, "provider", {
+            /**
+             * 地形对象，参考Cesium的TerrainProvider类
+             * @readonly
+             * @type {TerrainProvider}
+             */
+            get: function () {
+                return this._viewer.terrainProvider;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(Terrain.prototype, "exaggeration", {
+            /**
+             * 地形夸张系数
+             * @type {Number}
+             */
+            get: function () {
+                return this._viewer.scene.verticalExaggeration;
+            },
+            set: function (scale) {
+                this._viewer.scene.verticalExaggeration = scale;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(Terrain.prototype, "show", {
+            /**
+             * 是否显示地形（借助于地形夸张调整）
+             * @param {boolean} bool
+             */
+            set: function (bool) {
+                var terrain = boolTerrain(this._viewer);
+                if (Boolean(terrain) === bool)
+                    return;
+                this.exaggeration = bool ? 1 : 0;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(Terrain.prototype, "alpha", {
+            /**
+             * 地表透明度，只有在开启碰撞检测的时候才能生效
+             * @type {Number}
+             */
+            get: function () {
+                return this._alpha;
+            },
+            set: function (val) {
+                this._updateAlpha(val);
+                this._alpha = val;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(Terrain.prototype, "translucency", {
+            /**
+             * 地表碰撞检测
+             * @type {Boolean}
+             */
+            get: function () {
+                return this._viewer.scene.globe.translucency.enabled;
+            },
+            set: function (bool) {
+                this._updateTranslucency(bool);
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(Terrain.prototype, "enableUnderground", {
+            /**
+             * 是否允许进入地下
+             * @type {Boolean}
+             */
+            get: function () {
+                return !this._viewer.scene.screenSpaceCameraController
+                    .enableCollisionDetection;
+            },
+            set: function (bool) {
+                this._viewer.scene.screenSpaceCameraController.enableCollisionDetection =
+                    !bool;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Terrain.prototype._updateAlpha = function (val) {
+            var frontFaceAlphaByDistance = this._viewer.scene.globe.translucency.frontFaceAlphaByDistance;
+            frontFaceAlphaByDistance.nearValue = val;
+            frontFaceAlphaByDistance.farValue = val;
+        };
+        Terrain.prototype._updateTranslucency = function (bool) {
+            this._viewer.scene.globe.translucency.frontFaceAlphaByDistance =
+                new Cesium.NearFarScalar(1.5e2, 0.5, 8.0e6, 1.0);
+            this._viewer.scene.globe.translucency.enabled = bool; //是否开启透明
+            this._updateAlpha(this._alpha);
+        };
+        return Terrain;
+    }());
+
     // 设置默认相机观察范围（覆盖Cesium默认设置）
     Cesium__namespace.Camera.DEFAULT_VIEW_RECTANGLE = new Cesium__namespace.Rectangle(Cesium__namespace.Math.toRadians(70), Cesium__namespace.Math.toRadians(-15), Cesium__namespace.Math.toRadians(140), Cesium__namespace.Math.toRadians(80));
     var Viewer = /** @class */ (function (_super) {
@@ -320,6 +434,7 @@
              */
             _this.EventHandler = new EventEmitter(_this);
             _this.initBaseConfig();
+            _this.Terrain = new Terrain(_this);
             return _this;
         }
         /**

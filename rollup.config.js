@@ -11,17 +11,17 @@ export default {
   output: [
     // 输出配置，定义打包后文件的格式和位置
     {
-      file: `demo-vue3/public/lib/${libraryName}.cjs.js`, // 输出的文件名
+      file: `demo-vue3-html/public/lib/${libraryName}.cjs.js`, // 输出的文件名
       format: "cjs", // 模块格式，这里是 CommonJS 格式
       sourcemap: true, // 是否生成 source map，用于调试
     },
     {
-      file: `demo-vue3/public/lib/${libraryName}.esm.js`,
+      file: `demo-vue3-html/public/lib/${libraryName}.esm.js`,
       format: "esm", // 模块格式，这里是 ES Module 格式
       sourcemap: true,
     },
     {
-      file: `demo-vue3/public/lib/${libraryName}.umd.js`,
+      file: `demo-vue3-html/public/lib/${libraryName}.umd.js`,
       format: "umd", // 模块格式，这里是 UMD 格式，适用于浏览器和 Node.js
       name: "LarkExplorer", // 全局变量名称，UMD 格式在浏览器中会将库暴露为这个变量
       sourcemap: true,
@@ -39,7 +39,7 @@ export default {
     }),
     copy({
       //直接复制的文件，不参与打包
-      targets: [{ src: "src/static/*", dest: "demo-vue3/public/lib/static" }],
+      targets: [{ src: "src/static/*", dest: "demo-vue3-html/public/lib/static" }],
     }),
   ],
   // 声明哪些模块不应打包到库中，而是作为外部依赖

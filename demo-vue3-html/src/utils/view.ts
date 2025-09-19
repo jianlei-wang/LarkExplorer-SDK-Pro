@@ -13,6 +13,14 @@ const treeDatas = [
     children: [{ id: "003", label: "底图调整" }],
   },
   {
+    id: "DEM地形",
+    label: "DEM地形",
+    children: [
+      { id: "005", label: "初始化地形" },
+      { id: "006", label: "地形设置" },
+    ],
+  },
+  {
     id: "地图事件",
     label: "地图事件",
     children: [{ id: "002", label: "鼠标事件" }],

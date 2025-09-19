@@ -3,6 +3,7 @@ import EventEmitter from "./EventEmitter"
 import { CesiumIcon } from "src/utils/Default"
 import BaseLayer from "./BaseLayer"
 import { mapImg, mapSize } from "src/utils/Navigation"
+import Terrain from "./Terrain"
 
 // 设置默认相机观察范围（覆盖Cesium默认设置）
 Cesium.Camera.DEFAULT_VIEW_RECTANGLE = new Cesium.Rectangle(
@@ -27,6 +28,7 @@ interface ViewOption extends Cesium.Viewer.ConstructorOptions {
 }
 
 class Viewer extends Cesium.Viewer {
+  Terrain: Terrain
   /**
    * 创建地图场景实例
    * @extends Cesium.Viewer
@@ -76,6 +78,8 @@ class Viewer extends Cesium.Viewer {
       ...options, // 合并用户自定义配置
     })
     this.initBaseConfig()
+
+    this.Terrain = new Terrain(this)
   }
 
   /**
@@ -106,10 +110,10 @@ class Viewer extends Cesium.Viewer {
     this.scene.globe.depthTestAgainstTerrain = true
 
     // 天体显示配置
-    this.scene.skyBox.show = true
-    this.scene.sun.show = true
-    this.scene.moon.show = false
-    this.scene.skyAtmosphere.show = true
+    this.scene.skyBox!.show = true
+    this.scene.sun!.show = true
+    this.scene.moon!.show = false
+    this.scene.skyAtmosphere!.show = true
 
     // 光照配置
     this.scene.globe.enableLighting = true

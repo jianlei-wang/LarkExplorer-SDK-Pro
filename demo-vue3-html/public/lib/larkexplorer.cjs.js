@@ -328,7 +328,7 @@ var Terrain = /** @class */ (function () {
          */
         set: function (bool) {
             var terrain = boolTerrain(this._viewer);
-            if (Boolean(terrain) === bool)
+            if (!terrain)
                 return;
             this.exaggeration = bool ? 1 : 0;
         },
