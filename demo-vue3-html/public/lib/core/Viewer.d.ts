@@ -22,6 +22,7 @@ declare class Viewer extends Cesium.Viewer {
      * @extends Cesium.Viewer
      * @param {Element | string} container - DOM元素或元素ID，作为地图容器
      * @param {ViewOption} [options] - 地图配置选项（合并默认配置）
+     * @see {@link Terrain} - 地形主类（已同步）
      * @description
      * 增强版地图场景类，继承自 Cesium.Viewer，提供了更丰富的功能和配置选项。
      * @example

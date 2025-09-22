@@ -1,6 +1,6 @@
 import Viewer from "./Viewer";
 /**
- * 图层主类接口
+ * 图层主类
  */
 declare class Layers {
     private viewer;
