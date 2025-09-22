@@ -1,0 +1,32 @@
+{
+  "out": "./api-docs",
+  "source": {
+    "include": [
+      "demo-vue3-html\\public\\lib\\core\\BaseLayer.d.ts",
+      "demo-vue3-html\\public\\lib\\core\\EventEmitter.d.ts",
+      "demo-vue3-html\\public\\lib\\core\\index.d.ts",
+      "demo-vue3-html\\public\\lib\\core\\Layers.d.ts",
+      "demo-vue3-html\\public\\lib\\core\\Terrain.d.ts",
+      "demo-vue3-html\\public\\lib\\core\\Viewer.d.ts",
+      "demo-vue3-html/public/lib/utils/DefineObject.d.ts",
+      "demo-vue3-html/public/lib/types/index.d.ts"
+    ],
+    "includePattern": "\\.(jsx|js|ts|tsx)$"
+  },
+  "plugins": [
+    "./node_modules/better-docs/typescript"
+  ],
+  "tags": {
+    "allowUnknownTags": true
+  },
+  "opts": {
+    "destination": "./api-docs",
+    "recurse": true,
+    "template": "./node_modules/better-docs",
+    "hideInherited": false,
+    "hidePrivate": false
+  },
+  "typescript": {
+    "moduleRoot": "src/core"
+  }
+}

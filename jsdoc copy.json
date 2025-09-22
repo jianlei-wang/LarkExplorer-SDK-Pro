@@ -2,12 +2,9 @@
   "out": "./api-docs",
   "source": {
     "include": [
-      "src\\core\\BaseLayer.ts",
-      "src\\core\\EventEmitter.ts",
-      "src\\core\\index.ts",
-      "src\\core\\Layers.ts",
-      "src\\core\\Terrain.ts",
-      "src\\core\\Viewer.ts",
+      "src/core/Viewer.ts",
+      "src/core/EventEmitter.ts",
+      "src/core/Terrain.ts",
       "src/utils/DefineObject.ts",
       "src/types/index.ts"
     ],

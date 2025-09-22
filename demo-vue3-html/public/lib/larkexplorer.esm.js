@@ -267,8 +267,13 @@ var boolTerrain = function (viewer) {
 };
 
 var Terrain = /** @class */ (function () {
+    /**
+     * 地形主类
+     * @param viewer
+     */
     function Terrain(viewer) {
-        this._viewer = viewer;
+        this.viewer = viewer;
+        this.viewer = viewer;
         this._alpha = 1.0;
         this._updateTranslucency(false);
     }
@@ -279,7 +284,7 @@ var Terrain = /** @class */ (function () {
          * @type {TerrainProvider}
          */
         get: function () {
-            return this._viewer.terrainProvider;
+            return this.viewer.terrainProvider;
         },
         enumerable: false,
         configurable: true
@@ -290,10 +295,10 @@ var Terrain = /** @class */ (function () {
          * @type {Number}
          */
         get: function () {
-            return this._viewer.scene.verticalExaggeration;
+            return this.viewer.scene.verticalExaggeration;
         },
         set: function (scale) {
-            this._viewer.scene.verticalExaggeration = scale;
+            this.viewer.scene.verticalExaggeration = scale;
         },
         enumerable: false,
         configurable: true
@@ -304,7 +309,7 @@ var Terrain = /** @class */ (function () {
          * @param {boolean} bool
          */
         set: function (bool) {
-            var terrain = boolTerrain(this._viewer);
+            var terrain = boolTerrain(this.viewer);
             if (!terrain)
                 return;
             this.exaggeration = bool ? 1 : 0;
@@ -333,7 +338,7 @@ var Terrain = /** @class */ (function () {
          * @type {Boolean}
          */
         get: function () {
-            return this._viewer.scene.globe.translucency.enabled;
+            return this.viewer.scene.globe.translucency.enabled;
         },
         set: function (bool) {
             this._updateTranslucency(bool);
@@ -347,25 +352,25 @@ var Terrain = /** @class */ (function () {
          * @type {Boolean}
          */
         get: function () {
-            return !this._viewer.scene.screenSpaceCameraController
+            return !this.viewer.scene.screenSpaceCameraController
                 .enableCollisionDetection;
         },
         set: function (bool) {
-            this._viewer.scene.screenSpaceCameraController.enableCollisionDetection =
+            this.viewer.scene.screenSpaceCameraController.enableCollisionDetection =
                 !bool;
         },
         enumerable: false,
         configurable: true
     });
     Terrain.prototype._updateAlpha = function (val) {
-        var frontFaceAlphaByDistance = this._viewer.scene.globe.translucency.frontFaceAlphaByDistance;
+        var frontFaceAlphaByDistance = this.viewer.scene.globe.translucency.frontFaceAlphaByDistance;
         frontFaceAlphaByDistance.nearValue = val;
         frontFaceAlphaByDistance.farValue = val;
     };
     Terrain.prototype._updateTranslucency = function (bool) {
-        this._viewer.scene.globe.translucency.frontFaceAlphaByDistance =
+        this.viewer.scene.globe.translucency.frontFaceAlphaByDistance =
             new NearFarScalar(1.5e2, 0.5, 8.0e6, 1.0);
-        this._viewer.scene.globe.translucency.enabled = bool; //是否开启透明
+        this.viewer.scene.globe.translucency.enabled = bool; //是否开启透明
         this._updateAlpha(this._alpha);
     };
     return Terrain;

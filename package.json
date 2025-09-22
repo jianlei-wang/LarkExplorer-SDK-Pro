@@ -7,7 +7,9 @@
   "scripts": {
     "build": "rollup -c",
     "format": "prettier --write \"src/**/*.ts\"",
-    "jsdocs": "rimraf api-docs && jsdoc -c jsdoc.json README.md"
+    "update-jsdoc-include": "node scripts/update-jsdoc-include.js",
+    "jsdocs": "rimraf api-docs && jsdoc -c jsdoc.json README.md",
+    "api-docs": "npm run update-jsdoc-include && npm run jsdocs"
   },
   "keywords": [
     "3D",

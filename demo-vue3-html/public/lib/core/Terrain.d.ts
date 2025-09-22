@@ -1,15 +1,18 @@
-import { TerrainProvider } from "cesium";
 import Viewer from "./Viewer";
 declare class Terrain {
-    private _viewer;
+    private viewer;
     private _alpha;
+    /**
+     * 地形主类
+     * @param viewer
+     */
     constructor(viewer: Viewer);
     /**
      * 地形对象，参考Cesium的TerrainProvider类
      * @readonly
      * @type {TerrainProvider}
      */
-    get provider(): TerrainProvider;
+    get provider(): import("cesium").TerrainProvider;
     /**
      * 地形夸张系数
      * @type {Number}

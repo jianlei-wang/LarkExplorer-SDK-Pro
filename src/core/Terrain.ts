@@ -1,16 +1,15 @@
-import {
-  EllipsoidTerrainProvider,
-  NearFarScalar,
-  TerrainProvider,
-} from "cesium"
+import { NearFarScalar } from "cesium"
 import Viewer from "./Viewer"
 import { boolTerrain } from "src/utils/Terrain"
 
 class Terrain {
-  private _viewer: Viewer
   private _alpha: number
-  constructor(viewer: Viewer) {
-    this._viewer = viewer
+  /**
+   * 地形主类
+   * @param viewer
+   */
+  constructor(private viewer: Viewer) {
+    this.viewer = viewer
     this._alpha = 1.0
     this._updateTranslucency(false)
   }
@@ -20,7 +19,7 @@ class Terrain {
    * @type {TerrainProvider}
    */
   get provider() {
-    return this._viewer.terrainProvider
+    return this.viewer.terrainProvider
   }
 
   /**
@@ -28,10 +27,10 @@ class Terrain {
    * @type {Number}
    */
   get exaggeration() {
-    return this._viewer.scene.verticalExaggeration
+    return this.viewer.scene.verticalExaggeration
   }
   set exaggeration(scale) {
-    this._viewer.scene.verticalExaggeration = scale
+    this.viewer.scene.verticalExaggeration = scale
   }
 
   /**
@@ -39,7 +38,7 @@ class Terrain {
    * @param {boolean} bool
    */
   set show(bool: boolean) {
-    const terrain = boolTerrain(this._viewer)
+    const terrain = boolTerrain(this.viewer)
     if (!terrain) return
     this.exaggeration = bool ? 1 : 0
   }
@@ -61,7 +60,7 @@ class Terrain {
    * @type {Boolean}
    */
   get translucency() {
-    return this._viewer.scene.globe.translucency.enabled
+    return this.viewer.scene.globe.translucency.enabled
   }
   set translucency(bool) {
     this._updateTranslucency(bool)
@@ -72,25 +71,25 @@ class Terrain {
    * @type {Boolean}
    */
   get enableUnderground() {
-    return !this._viewer.scene.screenSpaceCameraController
+    return !this.viewer.scene.screenSpaceCameraController
       .enableCollisionDetection
   }
   set enableUnderground(bool) {
-    this._viewer.scene.screenSpaceCameraController.enableCollisionDetection =
+    this.viewer.scene.screenSpaceCameraController.enableCollisionDetection =
       !bool
   }
 
   _updateAlpha(val: number) {
     const frontFaceAlphaByDistance =
-      this._viewer.scene.globe.translucency.frontFaceAlphaByDistance
+      this.viewer.scene.globe.translucency.frontFaceAlphaByDistance
     frontFaceAlphaByDistance.nearValue = val
     frontFaceAlphaByDistance.farValue = val
   }
 
   _updateTranslucency(bool: boolean) {
-    this._viewer.scene.globe.translucency.frontFaceAlphaByDistance =
+    this.viewer.scene.globe.translucency.frontFaceAlphaByDistance =
       new NearFarScalar(1.5e2, 0.5, 8.0e6, 1.0)
-    this._viewer.scene.globe.translucency.enabled = bool //是否开启透明
+    this.viewer.scene.globe.translucency.enabled = bool //是否开启透明
     this._updateAlpha(this._alpha)
   }
 }
