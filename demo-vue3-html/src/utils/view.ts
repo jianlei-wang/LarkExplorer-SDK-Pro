@@ -25,6 +25,11 @@ const treeDatas = [
     label: "地图事件",
     children: [{ id: "002", label: "鼠标事件" }],
   },
+  {
+    id: "地图图层",
+    label: "地图图层",
+    children: [{ id: "007", label: "添加点" }],
+  },
 ]
 
 export default treeDatas

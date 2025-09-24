@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>007-添加点</title>
+    <script src="./Cesium/Cesium.js"></script>
+    <link rel="stylesheet" href="./Cesium/Widgets/widgets.css" />
+    <script src="./lib/larkexplorer.umd.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+      }
+      #cesiumContainer {
+        width: 100%;
+        height: 100%;
+        position: relative;
+      }
+      #gui-box {
+        position: absolute;
+        left: 5px;
+        top: 5px;
+        z-index: 99;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="cesiumContainer">
+      <div id="gui-box"></div>
+    </div>
+    <script>
+      const { DefaultTdtImg, DefaultTerrain } = LarkExplorer.BaseLayer
+      const viewer = new LarkExplorer.Viewer("cesiumContainer", {
+        baseLayer: DefaultTdtImg,
+        fpsShow: true,
+        mapboxController: true,
+        terrain: DefaultTerrain,
+      })
+      initGui()
+      function getRandomColor() {
+        const letters = "0123456789ABCDEF"
+        const color = "#"
+        for (const i = 0; i < 6; i++) {
+          color += letters[Math.floor(Math.random() * 16)]
+        }
+        return color
+      }
+      function pointGraphics() {
+        const pColor = getRandomColor()
+        const pOutlineColor = getRandomColor()
+        const pixelSize = Math.ceil(5 + Math.random() * 20)
+        const outlineWidth = Math.ceil(pixelSize / 3)
+        return { pColor, pixelSize, pOutlineColor, outlineWidth }
+      }
+      function initGui() {
+        const params = {
+          message: "GUI面板-添加点",
+          "单个点(Primitive)": function () {
+            const option = pointGraphics()
+            console.log(option)
+            viewer.Layers.Add.addPointPrimitive(
+              { x: -2764171.6209, y: 4787685.6882, z: 3170423.7353 },
+              option
+            )
+          },
+          "单个点(Entity)": function () {
+            const option = pointGraphics()
+            viewer.Layers.Add.addPointEntity(
+              { x: -2764181.6209, y: 4787675.6882, z: 3170433.7353 },
+              option
+            )
+          },
+        }
+        const gui = new dat.GUI({ autoPlace: false })
+        const customContainer = document.getElementById("gui-box")
+        customContainer.appendChild(gui.domElement)
+        gui.add(params, "message")
+        gui.add(params, "单个点(Primitive)")
+        gui.add(params, "单个点(Entity)")
+      }
+    </script>
+  </body>
+</html>

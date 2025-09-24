@@ -399,6 +399,120 @@ var Terrain = /** @class */ (function () {
     return Terrain;
 }());
 
+/**
+ * 获取场景中所有的图层
+ * @param viewer
+ * @returns
+ */
+function getAllLayers(viewer) {
+    //@ts-ignore
+    var entities = viewer.entities._entities._array;
+    //@ts-ignore
+    var imageryLayers = viewer.imageryLayers._layers;
+    //@ts-ignore
+    var primitives = viewer.scene.primitives._primitives;
+    //@ts-ignore
+    var dataSources = viewer.dataSources._dataSources;
+    return { entities: entities, imageryLayers: imageryLayers, primitives: primitives, dataSources: dataSources };
+}
+/**
+ * 给图层打上自定义标记，便于删除
+ * @param item - 待标记对象
+ * @param type - 对象类型["imagerylayer","entity","primitive","particle"]
+ * @param geo - 对象几何类型["WebMapTileServiceImageryProvider","Point","SpreadPoint","Polyline","Polygon","Circle","Radar","Model","fire","Billboard","panel"]
+ * @param pick - 是否支持点选
+ */
+function SetCusMark(item, type, geo, pick) {
+    if (pick === void 0) { pick = true; }
+    item.CustomType = type;
+    item.CustomGeo = geo;
+    item.AllowPick = pick;
+}
+
+/**
+ * 地图添加点数据-Primitive形式
+ * @param viewer
+ * @param positions
+ * @param options
+ * @returns
+ */
+function PointPrimitiveAdd(viewer, positions, options) {
+    if (options === void 0) { options = []; }
+    var primitive = viewer.scene.primitives.add(new Cesium.PointPrimitiveCollection());
+    for (var index = 0; index < positions.length; index++) {
+        var option = new PointGraphic(options[index]).value;
+        var position = positions[index];
+        var point = __assign({ position: position }, option);
+        SetCusMark(primitive, "primitive", "point", option.allowPick);
+        primitive.add(point);
+    }
+    return primitive;
+}
+function PointEntityAdd(viewer, positions, options) {
+    if (options === void 0) { options = []; }
+    var parent = viewer.entities.add(new Cesium.Entity());
+    for (var index = 0; index < positions.length; index++) {
+        var position = positions[index];
+        var option = new PointGraphic(options[index]).value;
+        var point = viewer.entities.add({
+            parent: parent,
+            id: option.id,
+            name: "Point",
+            position: position,
+            point: option,
+        });
+        SetCusMark(point, "entity", "point", option.allowPick);
+    }
+    return parent;
+}
+
+var Add = /** @class */ (function () {
+    /**
+     * 图层-添加对象类
+     * @param  {Viewer} viewer 地图场景对象
+     */
+    function Add(viewer) {
+        this.viewer = viewer;
+    }
+    /**
+     * 添加点-Primitive形式
+     * @param {Cartesian3} position 点位置，笛卡尔坐标
+     * @param {PointOption} options 点参数
+     * @returns {Cesium.Primitive} 点对象，Primitive类对象，参照Cesium
+     */
+    Add.prototype.addPointPrimitive = function (position, options) {
+        var pointPrimitive = PointPrimitiveAdd(this.viewer, [position], [options]);
+        return pointPrimitive;
+    };
+    Add.prototype.addPointEntity = function (position, options) {
+        var pointEntity = PointEntityAdd(this.viewer, [position], [options]);
+        return pointEntity;
+    };
+    return Add;
+}());
+
+var Layers = /** @class */ (function () {
+    /**
+     * 地形主类
+     * @param {Viewer} viewer
+     */
+    function Layers(viewer) {
+        this.viewer = viewer;
+        this.Add = new Add(this.viewer);
+    }
+    Object.defineProperty(Layers.prototype, "_layers", {
+        /**
+         * 所有场景中的图层
+         */
+        get: function () {
+            return getAllLayers(this.viewer);
+        },
+        enumerable: false,
+        configurable: true
+    });
+    return Layers;
+}());
+
 // 设置默认相机观察范围（覆盖Cesium默认设置）
 Cesium__namespace.Camera.DEFAULT_VIEW_RECTANGLE = new Cesium__namespace.Rectangle(Cesium__namespace.Math.toRadians(70), Cesium__namespace.Math.toRadians(-15), Cesium__namespace.Math.toRadians(140), Cesium__namespace.Math.toRadians(80));
 var Viewer = /** @class */ (function (_super) {
@@ -445,6 +559,7 @@ var Viewer = /** @class */ (function (_super) {
          * @type {Terrain}
          */
         _this.Terrain = new Terrain(_this);
+        _this.Layers = new Layers(_this);
         return _this;
     }
     /**
@@ -570,7 +685,182 @@ var Viewer = /** @class */ (function (_super) {
     return Viewer;
 }(Cesium__namespace.Viewer));
 
+/*
+ * 通用方法
+ * @Author: jianlei wang
+ * @Date: 2025-04-23 09:42:04
+ * @Last Modified by: jianlei wang
+ * @Last Modified time: 2025-05-12 16:18:53
+ */
+/**
+ * 生成唯一id
+ * @returns 例：936e0deb-c208-4098-9959-327e519e63e2
+ */
+function randomId() {
+    var tempUrl = URL.createObjectURL(new Blob());
+    var uuid = tempUrl.toString();
+    URL.revokeObjectURL(tempUrl);
+    return uuid.substring(uuid.lastIndexOf("/") + 1);
+}
+
+var PointGraphic = /** @class */ (function (_super) {
+    __extends(PointGraphic, _super);
+    /**
+     * 点几何属性参数类
+     * @extends Cesium.PointGraphics
+     * @param {PointOption} [options] - 点集合属性参数选项
+     */
+    function PointGraphic(options) {
+        if (options === void 0) { options = {}; }
+        var _this = _super.call(this) || this;
+        _this.merge(options);
+        var onGround = options.onGround, pColor = options.pColor, pOutlineColor = options.pOutlineColor, allowPick = options.allowPick, id = options.id, _a = options.featureAttribute, featureAttribute = _a === void 0 ? {} : _a;
+        _this._onGround = onGround || true;
+        _this.updateHr(_this._onGround);
+        _this._pColor = pColor || "#ff0000";
+        _this.updateColor(_this._pColor);
+        _this._pOutlineColor = pOutlineColor || "#ffff00";
+        _this.updateOutlineColor(_this._pOutlineColor);
+        _this._allowPick = new Cesium.ConstantProperty(allowPick || true);
+        _this._id = id || randomId();
+        _this._featureAttribute = new Cesium.ConstantProperty(__assign({ id: _this._id }, featureAttribute));
+        return _this;
+    }
+    Object.defineProperty(PointGraphic.prototype, "value", {
+        /**
+         * 点几何属性参数值
+         */
+        get: function () {
+            var _a = this, color = _a.color, outlineColor = _a.outlineColor, pixelSize = _a.pixelSize, outlineWidth = _a.outlineWidth, heightReference = _a.heightReference, scaleByDistance = _a.scaleByDistance, show = _a.show, splitDirection = _a.splitDirection, translucencyByDistance = _a.translucencyByDistance, disableDepthTestDistance = _a.disableDepthTestDistance, distanceDisplayCondition = _a.distanceDisplayCondition, allowPick = _a.allowPick, featureAttribute = _a.featureAttribute, id = _a.id;
+            var props = {
+                color: color,
+                outlineColor: outlineColor,
+                pixelSize: pixelSize,
+                outlineWidth: outlineWidth,
+                heightReference: heightReference,
+                scaleByDistance: scaleByDistance,
+                show: show,
+                splitDirection: splitDirection,
+                translucencyByDistance: translucencyByDistance,
+                disableDepthTestDistance: disableDepthTestDistance,
+                distanceDisplayCondition: distanceDisplayCondition,
+                allowPick: allowPick,
+                featureAttribute: featureAttribute,
+                id: id,
+            };
+            var result = {};
+            console.log("测试问题开始：", props);
+            for (var key in props) {
+                var prop = props[key];
+                if (prop && typeof prop.getValue === "function") {
+                    var value = prop.getValue();
+                    if (value !== undefined && value !== null) {
+                        result[key] = value;
+                    }
+                }
+                else if (prop !== undefined && prop !== null) {
+                    result[key] = prop;
+                }
+            }
+            return result;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(PointGraphic.prototype, "id", {
+        /**
+         * 点唯一id
+         */
+        get: function () {
+            return this._id;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(PointGraphic.prototype, "onGround", {
+        /**
+         * 点贴地设置
+         */
+        get: function () {
+            return this._onGround;
+        },
+        set: function (bool) {
+            this._onGround = bool;
+            this.updateHr(bool);
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(PointGraphic.prototype, "pColor", {
+        /**
+         * 点填充颜色
+         */
+        get: function () {
+            return this._pColor;
+        },
+        set: function (val) {
+            this._pColor = val;
+            this.updateColor(val);
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(PointGraphic.prototype, "pOutlineColor", {
+        /**
+         * 点轮廓线填充颜色
+         */
+        get: function () {
+            return this._pColor;
+        },
+        set: function (val) {
+            this._pOutlineColor = val;
+            this.updateOutlineColor(val);
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(PointGraphic.prototype, "allowPick", {
+        /**
+         * 点对象点选设置
+         */
+        get: function () {
+            return this._allowPick.getValue();
+        },
+        set: function (bool) {
+            this._allowPick = new Cesium.ConstantProperty(bool);
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(PointGraphic.prototype, "featureAttribute", {
+        /**
+         * 点对象属性表
+         */
+        get: function () {
+            return this._featureAttribute;
+        },
+        set: function (val) {
+            this._featureAttribute = new Cesium.ConstantProperty(val);
+        },
+        enumerable: false,
+        configurable: true
+    });
+    PointGraphic.prototype.updateHr = function (bool) {
+        this.heightReference = bool
+            ? new Cesium.ConstantProperty(Cesium.HeightReference.CLAMP_TO_GROUND).getValue()
+            : new Cesium.ConstantProperty(Cesium.HeightReference.NONE).getValue();
+    };
+    PointGraphic.prototype.updateColor = function (color) {
+        this.color = new Cesium.ConstantProperty(Cesium.Color.fromCssColorString(color)).getValue();
+    };
+    PointGraphic.prototype.updateOutlineColor = function (color) {
+        this.outlineColor = new Cesium.ConstantProperty(Cesium.Color.fromCssColorString(color)).getValue();
+    };
+    return PointGraphic;
+}(Cesium.PointGraphics));
+
 exports.BaseLayer = BaseLayer;
 exports.EventNameMap = EventNameMap;
+exports.PointGraphics = PointGraphic;
 exports.Viewer = Viewer;
 //# sourceMappingURL=larkexplorer.cjs.js.map

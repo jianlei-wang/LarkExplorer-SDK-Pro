@@ -4,12 +4,15 @@
     "include": [
       "src\\core\\BaseLayer.ts",
       "src\\core\\EventEmitter.ts",
+      "src\\core\\graphics\\PointGraphics.ts",
       "src\\core\\index.ts",
+      "src\\core\\layers\\AddCreator.ts",
       "src\\core\\Layers.ts",
       "src\\core\\Terrain.ts",
       "src\\core\\Viewer.ts",
       "src/utils/DefineObject.ts",
-      "src/types/index.ts"
+      "src/types/index.ts",
+      "src/types/CesiumTypes.ts"
     ],
     "includePattern": "\\.(jsx|js|ts|tsx)$"
   },

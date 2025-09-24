@@ -1,6 +1,7 @@
 import * as Cesium from "cesium";
 import EventEmitter from "./EventEmitter";
 import Terrain from "./Terrain";
+import Layers from "./Layers";
 /**
  * 地图场景配置扩展接口
  * @interface
@@ -17,6 +18,7 @@ interface ViewOption extends Cesium.Viewer.ConstructorOptions {
 declare class Viewer extends Cesium.Viewer {
     options?: ViewOption | undefined;
     Terrain: Terrain;
+    Layers: Layers;
     /**
      * 创建地图场景实例
      * @extends Cesium.Viewer

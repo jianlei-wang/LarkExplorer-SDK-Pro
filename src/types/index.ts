@@ -13,4 +13,3 @@ export type Events = Map<EventType, Function[]>
  * @typedef EventType
  */
 export type EventType = keyof typeof EventNameMap
-

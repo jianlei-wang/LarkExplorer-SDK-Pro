@@ -4,16 +4,32 @@ const path = require("path")
 const jsdocPath = path.resolve(__dirname, "../jsdoc.json")
 const coreDir = path.resolve(__dirname, "../src/core")
 
-// 读取所有 .ts 文件
-const tsFiles = fs
-  .readdirSync(coreDir)
-  .filter((file) => file.endsWith(".ts"))
-  .map((file) => path.join("src/core", file))
+// 递归获取所有 .ts 文件
+function getAllTsFiles(dir, base = "src/core") {
+  let results = []
+  const list = fs.readdirSync(dir)
+  list.forEach((file) => {
+    const filePath = path.join(dir, file)
+    const stat = fs.statSync(filePath)
+    if (stat && stat.isDirectory()) {
+      results = results.concat(getAllTsFiles(filePath, path.join(base, file)))
+    } else if (file.endsWith(".ts")) {
+      results.push(path.join(base, file))
+    }
+  })
+  return results
+}
+
+const tsFiles = getAllTsFiles(coreDir)
 
 // 读取 jsdoc.json
 const jsdocConfig = JSON.parse(fs.readFileSync(jsdocPath, "utf-8"))
 
-tsFiles.push("src/utils/DefineObject.ts", "src/types/index.ts")
+tsFiles.push(
+  "src/utils/DefineObject.ts",
+  "src/types/index.ts",
+  "src/types/CesiumTypes.ts"
+)
 // 更新 include 字段
 jsdocConfig.source.include = tsFiles
 

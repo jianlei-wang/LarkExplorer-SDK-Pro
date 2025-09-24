@@ -4,6 +4,7 @@ import { CesiumIcon } from "src/utils/Default"
 import BaseLayer from "./BaseLayer"
 import { mapImg, mapSize } from "src/utils/Navigation"
 import Terrain from "./Terrain"
+import Layers from "./Layers"
 
 // 设置默认相机观察范围（覆盖Cesium默认设置）
 Cesium.Camera.DEFAULT_VIEW_RECTANGLE = new Cesium.Rectangle(
@@ -29,6 +30,7 @@ interface ViewOption extends Cesium.Viewer.ConstructorOptions {
 
 class Viewer extends Cesium.Viewer {
   Terrain: Terrain
+  Layers: Layers
   /**
    * 创建地图场景实例
    * @extends Cesium.Viewer
@@ -84,6 +86,8 @@ class Viewer extends Cesium.Viewer {
      * @type {Terrain}
      */
     this.Terrain = new Terrain(this)
+
+    this.Layers = new Layers(this)
   }
 
   /**
