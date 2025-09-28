@@ -23,7 +23,10 @@ const treeDatas = [
   {
     id: "地图事件",
     label: "地图事件",
-    children: [{ id: "002", label: "鼠标事件" }],
+    children: [
+      { id: "002", label: "鼠标事件" },
+      { id: "004", label: "对象拾取" },
+    ],
   },
   {
     id: "地图图层",

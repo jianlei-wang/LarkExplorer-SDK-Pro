@@ -1,14 +1,24 @@
 import Viewer from "./Viewer";
 import { Add } from "./layers/AddCreator";
+import TilesModel from "./layers/Model";
 declare class Layers {
     private viewer;
-    Add: Add;
     /**
      * 地形主类
      * @param {Viewer} viewer
      * @see {@link Add} - 添加对象类
      */
     constructor(viewer: Viewer);
+    /**
+     * 图层-添加对象类
+     * @type {Add}
+     */
+    Add: Add;
+    /**
+     * 模型图层对象类
+     * @type {TilesModel}
+     */
+    TilesModel: TilesModel;
     /**
      * 所有场景中的图层
      */

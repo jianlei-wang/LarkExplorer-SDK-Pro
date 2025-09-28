@@ -185,8 +185,17 @@ class Viewer extends Cesium.Viewer {
   get fps() {
     return this.scene.debugShowFramesPerSecond
   }
-  set fps(show) {
+  set fps(show: boolean) {
     this.scene.debugShowFramesPerSecond = show // 显示帧率
+  }
+
+  /**
+   * 地球光源阴影
+   * @type {Boolean}
+   */
+  set lightShadow(bool: boolean) {
+    this.scene.globe.enableLighting = bool
+    this.shadows = bool
   }
 
   /**

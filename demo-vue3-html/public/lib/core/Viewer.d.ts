@@ -75,6 +75,11 @@ declare class Viewer extends Cesium.Viewer {
     get fps(): boolean;
     set fps(show: boolean);
     /**
+     * 地球光源阴影
+     * @type {Boolean}
+     */
+    set lightShadow(bool: boolean);
+    /**
      * 地图画布大小，例如：{width:1920,height:1080}
      * @type {Object}
      * @readonly

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>003-底图调整</title>
+    <title>008-加载3DTiles</title>
     <script src="./Cesium/Cesium.js"></script>
     <link rel="stylesheet" href="./Cesium/Widgets/widgets.css" />
     <script src="./lib/larkexplorer.umd.js"></script>
@@ -34,33 +34,42 @@
       <div id="gui-box"></div>
     </div>
     <script>
+      const { DefaultTdtImg, DefaultTerrain } = LarkExplorer.BaseLayer
       const viewer = new LarkExplorer.Viewer("cesiumContainer", {
-        baseLayer: LarkExplorer.BaseLayer.DefaultSingleImg,
+        baseLayer: DefaultTdtImg,
         fpsShow: true,
+        mapboxController: true,
+        terrain: DefaultTerrain,
       })
       initGui()
+      let model
+      function addModel(url) {
+        model = viewer.Layers.TilesModel.add3DTiles(url, 15)
+        model && viewer.flyTo(model)
+      }
+      function removeModel() {
+        viewer.Layers.remove(model)
+      }
       function initGui() {
-        const params = { message: "GUI面板-底图调整", "base-imagery": 0 }
+        const params = {
+          message: "GUI面板-加载3DTiles",
+          模型地址:
+            "https://app.larkview.cn/lkstationfile/projects/project_1468b9682b6e4b4198cbea2a6ae9b815/layers/model/会昌_倾斜摄影_20250905_1/tileset.json",
+          显示模型: false,
+          阴影光源: true,
+        }
         const gui = new dat.GUI({ autoPlace: false })
         const customContainer = document.getElementById("gui-box")
         customContainer.appendChild(gui.domElement)
         gui.add(params, "message")
-        const baseImg = gui.add(params, "base-imagery", {
-          SingleImage: 0,
-          TDTImagery: 1,
-          TDTVector: 2,
-          ArcgisImagery: 3,
+        const modelUrl = gui.add(params, "模型地址")
+        const boolShow = gui.add(params, "显示模型")
+        boolShow.onFinishChange((bool) => {
+          bool ? addModel(modelUrl.getValue()) : removeModel()
         })
-        baseImg.onChange((val) => {
-          const baseLayer = LarkExplorer.BaseLayer
-          const option = {
-            0: baseLayer.DefaultSingleImg,
-            1: baseLayer.DefaultTdtImg,
-            2: baseLayer.DefaultTdtVec,
-            3: baseLayer.DefaultArcgisImg,
-          }
-          const imagery = viewer.imageryLayers.add(option[val])
-          viewer.baseImagery = option[val]
+        const boolLight = gui.add(params, "阴影光源")
+        boolLight.onFinishChange((bool) => {
+          viewer.lightShadow = bool
         })
       }
     </script>
