@@ -4,7 +4,7 @@ const path = require("path")
 const jsdocPath = path.resolve(__dirname, "../jsdoc.json")
 const coreDir = path.resolve(__dirname, "../src/core")
 
-// 递归获取所有 .ts 文件
+// 递归获取core下面所有 .ts 文件
 function getAllTsFiles(dir, base = "src/core") {
   let results = []
   const list = fs.readdirSync(dir)
@@ -27,6 +27,7 @@ const jsdocConfig = JSON.parse(fs.readFileSync(jsdocPath, "utf-8"))
 
 tsFiles.push(
   "src/utils/DefineObject.ts",
+  "src/utils/Coordinate.ts",
   "src/types/index.ts",
   "src/types/CesiumTypes.ts"
 )

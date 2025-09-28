@@ -2,6 +2,7 @@ import * as Cesium from "cesium";
 import EventEmitter from "./EventEmitter";
 import Terrain from "./Terrain";
 import Layers from "./Layers";
+import Handler from "./Handler";
 /**
  * 地图场景配置扩展接口
  * @interface
@@ -17,14 +18,11 @@ interface ViewOption extends Cesium.Viewer.ConstructorOptions {
 }
 declare class Viewer extends Cesium.Viewer {
     options?: ViewOption | undefined;
-    Terrain: Terrain;
-    Layers: Layers;
     /**
      * 创建地图场景实例
      * @extends Cesium.Viewer
      * @param {Element | string} container - DOM元素或元素ID，作为地图容器
      * @param {ViewOption} [options] - 地图配置选项（合并默认配置）
-     * @see {@link Terrain} - 地形主类（已同步）
      * @description
      * 增强版地图场景类，继承自 Cesium.Viewer，提供了更丰富的功能和配置选项。
      * @example
@@ -40,6 +38,21 @@ declare class Viewer extends Cesium.Viewer {
      * @type {EventEmitter}
      */
     EventHandler: EventEmitter;
+    /**
+     * 地图Handler句柄主类，关联地图点击通用方法
+     * @type {Handler}
+     */
+    Handlers: Handler;
+    /**
+     * 地形主类，地形相关方法
+     * @type {Terrain}
+     */
+    Terrain: Terrain;
+    /**
+     * 图层主类，图层相关方法
+     * @type {Layers}
+     */
+    Layers: Layers;
     /**
      * 初始化基础场景配置
      * @private

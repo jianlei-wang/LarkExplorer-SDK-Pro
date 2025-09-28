@@ -5,6 +5,6 @@ import { Viewer } from "src/core"
  * @param viewer - 地图场景
  * @returns 是否已经加载地形
  */
-export const boolTerrain = (viewer: Viewer) => {
+export function boolTerrain(viewer: Viewer) {
   return viewer.terrainProvider.availability
 }

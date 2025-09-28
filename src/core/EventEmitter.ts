@@ -59,6 +59,17 @@ class EventEmitter {
   }
 
   /**
+   * 移除事件类型集
+   * @param {Array<EventType>} eventNames 要移除的事件名称集合
+   */
+  offEvents(eventNames: EventType[] = []) {
+    for (let index = 0; index < eventNames.length; index++) {
+      const eventName = eventNames[index]
+      this.events.has(eventName) && this.events.delete(eventName)
+    }
+  }
+
+  /**
    * 清空所有已注册的事件和回调
    */
   clear(): void {

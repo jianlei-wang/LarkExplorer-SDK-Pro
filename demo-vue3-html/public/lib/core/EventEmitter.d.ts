@@ -30,6 +30,11 @@ declare class EventEmitter {
      */
     off(eventName: EventType, callback?: Function): void;
     /**
+     * 移除事件类型集
+     * @param {Array<EventType>} eventNames 要移除的事件名称集合
+     */
+    offEvents(eventNames?: EventType[]): void;
+    /**
      * 清空所有已注册的事件和回调
      */
     clear(): void;

@@ -3,7 +3,7 @@
  * @Author: jianlei wang
  * @Date: 2025-04-23 09:42:04
  * @Last Modified by: jianlei wang
- * @Last Modified time: 2025-05-12 16:18:53
+ * @Last Modified time: 2025-09-26 09:44:11
  */
 
 /**
@@ -15,4 +15,11 @@ export function randomId() {
   const uuid = tempUrl.toString()
   URL.revokeObjectURL(tempUrl)
   return uuid.substring(uuid.lastIndexOf("/") + 1)
+}
+
+/**
+ * 安全执行回调
+ */
+export function safeCallback(callback: Function | undefined, data: any) {
+  callback && typeof callback === "function" && callback(data)
 }

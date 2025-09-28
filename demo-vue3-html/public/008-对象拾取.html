@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>008-对象拾取</title>
+    <script src="./Cesium/Cesium.js"></script>
+    <link rel="stylesheet" href="./Cesium/Widgets/widgets.css" />
+    <script src="./lib/larkexplorer.umd.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+      }
+      #cesiumContainer {
+        width: 100%;
+        height: 100%;
+        position: relative;
+      }
+      #gui-box {
+        position: absolute;
+        left: 5px;
+        top: 5px;
+        z-index: 99;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="cesiumContainer">
+      <div id="gui-box"></div>
+    </div>
+    <script>
+      initGui()
+
+      const { DefaultTdtImg, DefaultTerrain } = LarkExplorer.BaseLayer
+      const viewer = new LarkExplorer.Viewer("cesiumContainer", {
+        baseLayer: DefaultTdtImg,
+        fpsShow: true,
+        mapboxController: true,
+        terrain: DefaultTerrain,
+      })
+      initPoint()
+
+      function initPoint() {
+        const options = {
+          pColor: "#ff0000",
+          pOutlineColor: "#fff000",
+          pixelSize: 15,
+          outlineWidth: 3,
+        }
+        viewer.Layers.Add.addPointEntity(
+          { x: -2764181.6209, y: 4787675.6882, z: 3170433.7353 },
+          options
+        )
+        viewer.Layers.Add.addPointPrimitive(
+          { x: -2764281.6209, y: 4787375.6882, z: 3170933.7353 },
+          options
+        )
+      }
+      function startPick() {
+        viewer.Handlers.pickEnabled(true, (res) => {
+          console.log("点击", res)
+        })
+      }
+      function endPick() {
+        viewer.Handlers.pickEnabled(false)
+      }
+      function initGui() {
+        const params = { message: "GUI面板-对象拾取", 拾取对象: false }
+        const gui = new dat.GUI({ autoPlace: false })
+        const customContainer = document.getElementById("gui-box")
+        customContainer.appendChild(gui.domElement)
+        gui.add(params, "message")
+        const boolEvent = gui.add(params, "拾取对象")
+        boolEvent.onFinishChange((val) => {
+          val ? startPick() : endPick()
+        })
+      }
+    </script>
+  </body>
+</html>

@@ -5,6 +5,7 @@ import BaseLayer from "./BaseLayer"
 import { mapImg, mapSize } from "src/utils/Navigation"
 import Terrain from "./Terrain"
 import Layers from "./Layers"
+import Handler from "./Handler"
 
 // 设置默认相机观察范围（覆盖Cesium默认设置）
 Cesium.Camera.DEFAULT_VIEW_RECTANGLE = new Cesium.Rectangle(
@@ -29,14 +30,11 @@ interface ViewOption extends Cesium.Viewer.ConstructorOptions {
 }
 
 class Viewer extends Cesium.Viewer {
-  Terrain: Terrain
-  Layers: Layers
   /**
    * 创建地图场景实例
    * @extends Cesium.Viewer
    * @param {Element | string} container - DOM元素或元素ID，作为地图容器
    * @param {ViewOption} [options] - 地图配置选项（合并默认配置）
-   * @see {@link Terrain} - 地形主类（已同步）
    * @description
    * 增强版地图场景类，继承自 Cesium.Viewer，提供了更丰富的功能和配置选项。
    * @example
@@ -81,13 +79,6 @@ class Viewer extends Cesium.Viewer {
       ...options, // 合并用户自定义配置
     })
     this.initBaseConfig()
-    /**
-     * 地形主类
-     * @type {Terrain}
-     */
-    this.Terrain = new Terrain(this)
-
-    this.Layers = new Layers(this)
   }
 
   /**
@@ -95,6 +86,24 @@ class Viewer extends Cesium.Viewer {
    * @type {EventEmitter}
    */
   public EventHandler: EventEmitter = new EventEmitter(this)
+
+  /**
+   * 地图Handler句柄主类，关联地图点击通用方法
+   * @type {Handler}
+   */
+  public Handlers: Handler = new Handler(this)
+
+  /**
+   * 地形主类，地形相关方法
+   * @type {Terrain}
+   */
+  public Terrain: Terrain = new Terrain(this)
+
+  /**
+   * 图层主类，图层相关方法
+   * @type {Layers}
+   */
+  public Layers: Layers = new Layers(this)
 
   /**
    * 初始化基础场景配置
@@ -209,7 +218,6 @@ class Viewer extends Cesium.Viewer {
     const baseLayer = layers.find((layer: any) => layer._isBaseLayer)
     return baseLayer
   }
-
   set baseImagery(imagery: Cesium.ImageryLayer) {
     //@ts-ignore
     const baseLayer = this.imageryLayers._layers.find(

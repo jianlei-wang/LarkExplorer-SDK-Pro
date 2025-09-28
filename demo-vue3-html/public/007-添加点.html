@@ -44,8 +44,8 @@
       initGui()
       function getRandomColor() {
         const letters = "0123456789ABCDEF"
-        const color = "#"
-        for (const i = 0; i < 6; i++) {
+        let color = "#"
+        for (let i = 0; i < 6; i++) {
           color += letters[Math.floor(Math.random() * 16)]
         }
         return color
@@ -55,33 +55,96 @@
         const pOutlineColor = getRandomColor()
         const pixelSize = Math.ceil(5 + Math.random() * 20)
         const outlineWidth = Math.ceil(pixelSize / 3)
-        return { pColor, pixelSize, pOutlineColor, outlineWidth }
+        console.log(pColor, pOutlineColor)
+        const onGround = false
+        const pg = new LarkExplorer.PointGraphics({
+          pColor,
+          pixelSize,
+          pOutlineColor,
+          outlineWidth,
+          onGround,
+        })
+        console.log(pg.value)
+        return pg.value
+      }
+      function positionRandom() {
+        const preX = Math.random() > 0.5 ? 1 : -1
+        const x = 120 + Math.random() * preX * 2
+        const preY = Math.random() > 0.5 ? 1 : -1
+        const y = 30 + Math.random() * preY * 2
+        const z = 0
+        return LarkExplorer.Coordinates.transformWGS84ToCartesian({ x, y, z })
+      }
+      let pointPrimitive
+      async function addPrimitive() {
+        const option = pointGraphics()
+        const position = positionRandom()
+        pointPrimitive = await viewer.Layers.Add.addPointPrimitive(
+          position,
+          option
+        )
+      }
+      function removePrimitive() {
+        viewer.Layers.remove(pointPrimitive)
+      }
+      let pointPrimitives
+      async function addPrimitives() {
+        const options = Array.from({ length: 100 }, () => pointGraphics())
+        const points = Array.from({ length: 100 }, () => positionRandom())
+        pointPrimitives = await viewer.Layers.Add.addPointPrimitives(
+          points,
+          options
+        )
+      }
+      function removePrimitives() {
+        viewer.Layers.remove(pointPrimitives)
+      }
+      let pointEntity
+      function addEntity() {
+        const option = pointGraphics()
+        const position = positionRandom()
+        pointEntity = viewer.Layers.Add.addPointEntity(position, option)
+      }
+      function removeEntity() {
+        viewer.Layers.remove(pointEntity)
+      }
+      let pointEntities
+      function addEntities() {
+        const options = Array.from({ length: 475 }, () => pointGraphics())
+        const points = Array.from({ length: 475 }, () => positionRandom())
+        pointEntities = viewer.Layers.Add.addPointEntities(points, options)
+      }
+      function removeEntities() {
+        viewer.Layers.remove(pointEntities)
       }
       function initGui() {
         const params = {
           message: "GUI面板-添加点",
-          "单个点(Primitive)": function () {
-            const option = pointGraphics()
-            console.log(option)
-            viewer.Layers.Add.addPointPrimitive(
-              { x: -2764171.6209, y: 4787685.6882, z: 3170423.7353 },
-              option
-            )
-          },
-          "单个点(Entity)": function () {
-            const option = pointGraphics()
-            viewer.Layers.Add.addPointEntity(
-              { x: -2764181.6209, y: 4787675.6882, z: 3170433.7353 },
-              option
-            )
-          },
+          "单个点(Primitive)": false,
+          "多点(Primitive)": false,
+          "单个点(Entity)": false,
+          "多点(Entity)": false,
         }
         const gui = new dat.GUI({ autoPlace: false })
         const customContainer = document.getElementById("gui-box")
         customContainer.appendChild(gui.domElement)
         gui.add(params, "message")
-        gui.add(params, "单个点(Primitive)")
-        gui.add(params, "单个点(Entity)")
+        const boolPrimitive = gui.add(params, "单个点(Primitive)")
+        boolPrimitive.onFinishChange((bool) => {
+          bool ? addPrimitive() : removePrimitive()
+        })
+        const boolPrimitives = gui.add(params, "多点(Primitive)")
+        boolPrimitives.onFinishChange((bool) => {
+          bool ? addPrimitives() : removePrimitives()
+        })
+        const boolEntity = gui.add(params, "单个点(Entity)")
+        boolEntity.onFinishChange((bool) => {
+          bool ? addEntity() : removeEntity()
+        })
+        const boolEntities = gui.add(params, "多点(Entity)")
+        boolEntities.onFinishChange((bool) => {
+          bool ? addEntities() : removeEntities()
+        })
       }
     </script>
   </body>

@@ -6,7 +6,6 @@ import {
   PointPrimitiveAdd,
 } from "src/utils/create-add/PointAdd"
 import { PointOption } from "../graphics/PointGraphics"
-import { SetCusMark } from "src/utils/layers/Layers"
 
 export class Add {
   /**
@@ -18,15 +17,50 @@ export class Add {
   /**
    * 添加点-Primitive形式
    * @param {Cartesian3} position 点位置，笛卡尔坐标
-   * @param {PointOption} options 点参数
+   * @param {PointOption} option 点参数
    * @returns {Cesium.Primitive} 点对象，Primitive类对象，参照Cesium
    */
-  addPointPrimitive(position: Cartesian3, options: PointOption) {
-    const pointPrimitive = PointPrimitiveAdd(this.viewer, [position], [options])
+  async addPointPrimitive(position: Cartesian3, option: PointOption) {
+    const pointPrimitive = await PointPrimitiveAdd(
+      this.viewer,
+      [position],
+      [option]
+    )
     return pointPrimitive
   }
-  addPointEntity(position: Cartesian3, options: PointOption) {
-    const pointEntity = PointEntityAdd(this.viewer, [position], [options])
+  /**
+   * 添加点集-Primitive形式
+   * @param {Cartesian3[]} positions 点位置，笛卡尔坐标
+   * @param {PointOption[]} options 点参数
+   * @returns {Cesium.Primitive} 点对象，Primitive类对象，参照Cesium
+   */
+  async addPointPrimitives(positions: Cartesian3[], options: PointOption[]) {
+    const pointPrimitive = await PointPrimitiveAdd(
+      this.viewer,
+      positions,
+      options
+    )
+    return pointPrimitive
+  }
+  /**
+   * 添加点-Entity形式
+   * @param {Cartesian3} position 点位置，笛卡尔坐标集合
+   * @param {PointOption} option 点参数
+   * @returns {Cesium.Entity} 点对象，Entity类对象，参照Cesium
+   */
+  addPointEntity(position: Cartesian3, option: PointOption) {
+    const pointEntity = PointEntityAdd(this.viewer, [position], [option])
+    return pointEntity
+  }
+
+  /**
+   * 添加点集-Entity形式
+   * @param {Cartesian3[]} positions 点位置，笛卡尔坐标集合
+   * @param {PointOption[]} options 点参数
+   * @returns {Cesium.Entity} 点对象，Entity parent类对象，参照Cesium
+   */
+  addPointEntities(positions: Cartesian3[], options: PointOption[]) {
+    const pointEntity = PointEntityAdd(this.viewer, positions, options)
     return pointEntity
   }
 }

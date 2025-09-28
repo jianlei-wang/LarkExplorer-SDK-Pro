@@ -1,2 +1,2 @@
-import type { Cartesian3 } from "cesium"
-export type { Cartesian3 }
+import type { Cartesian3, Cartesian2 } from "cesium"
+export type { Cartesian3, Cartesian2 }

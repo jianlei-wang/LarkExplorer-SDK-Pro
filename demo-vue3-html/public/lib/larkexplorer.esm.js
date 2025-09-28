@@ -1,5 +1,5 @@
 import * as Cesium from 'cesium';
-import { ScreenSpaceEventType, ScreenSpaceEventHandler, ImageryLayer, SingleTileImageryProvider, ArcGisMapServerImageryProvider, WebMapTileServiceImageryProvider, createWorldTerrainAsync, Terrain as Terrain$1, CesiumTerrainProvider, NearFarScalar, PointPrimitiveCollection, Entity, ConstantProperty, HeightReference, Color, PointGraphics } from 'cesium';
+import { ScreenSpaceEventType, ScreenSpaceEventHandler, ImageryLayer, SingleTileImageryProvider, ArcGisMapServerImageryProvider, WebMapTileServiceImageryProvider, createWorldTerrainAsync, Terrain as Terrain$1, CesiumTerrainProvider, NearFarScalar, Entity, BillboardCollection, Primitive, GroundPrimitive, GroundPolylinePrimitive, Cesium3DTileset, Cartographic, Math, EllipsoidTerrainProvider, Cartesian3, Ellipsoid, Cesium3DTileFeature, Model, sampleTerrainMostDetailed, PointPrimitiveCollection, defined, ConstantProperty, HeightReference, Color, PointGraphics } from 'cesium';
 
 /******************************************************************************
 Copyright (c) Microsoft Corporation.
@@ -42,6 +42,44 @@ var __assign = function() {
     };
     return __assign.apply(this, arguments);
 };
+
+function __awaiter(thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+}
+
+function __generator(thisArg, body) {
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
+    return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    function verb(n) { return function (v) { return step([n, v]); }; }
+    function step(op) {
+        if (f) throw new TypeError("Generator is already executing.");
+        while (g && (g = 0, op[0] && (_ = 0)), _) try {
+            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+            if (y = 0, t) op = [op[0] & 2, t.value];
+            switch (op[0]) {
+                case 0: case 1: t = op; break;
+                case 4: _.label++; return { value: op[1], done: false };
+                case 5: _.label++; y = op[1]; op = [0]; continue;
+                case 7: op = _.ops.pop(); _.trys.pop(); continue;
+                default:
+                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
+                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
+                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
+                    if (t[2]) _.ops.pop();
+                    _.trys.pop(); continue;
+            }
+            op = body.call(thisArg, _);
+        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
+        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
+    }
+}
 
 typeof SuppressedError === "function" ? SuppressedError : function (error, suppressed, message) {
     var e = new Error(message);
@@ -143,6 +181,17 @@ var EventEmitter = /** @class */ (function () {
         }
         else {
             this.events.delete(eventName);
+        }
+    };
+    /**
+     * 移除事件类型集
+     * @param {Array<EventType>} eventNames 要移除的事件名称集合
+     */
+    EventEmitter.prototype.offEvents = function (eventNames) {
+        if (eventNames === void 0) { eventNames = []; }
+        for (var index = 0; index < eventNames.length; index++) {
+            var eventName = eventNames[index];
+            this.events.has(eventName) && this.events.delete(eventName);
         }
     };
     /**
@@ -262,9 +311,9 @@ function mapImg(viewer) {
  * @param viewer - 地图场景
  * @returns 是否已经加载地形
  */
-var boolTerrain = function (viewer) {
+function boolTerrain(viewer) {
     return viewer.terrainProvider.availability;
-};
+}
 
 var Terrain = /** @class */ (function () {
     /**
@@ -377,6 +426,75 @@ var Terrain = /** @class */ (function () {
 }());
 
 /**
+ * 移除指定entity
+ * @param viewer - 地图场景
+ * @param entity - 待移除对象
+ */
+function removeEntity(viewer, entity) {
+    var children = entityChildren(entity);
+    children &&
+        children.forEach(function (ele) {
+            removeEntity(viewer, ele);
+        });
+    entity.PostRender && entity.PostRender();
+    entity.CustomDom && viewer.container.removeChild(entity.CustomDom);
+    viewer.entities.remove(entity);
+}
+/**
+ * 获取entity的子对象
+ * @param entity - entity对象
+ * @returns - 子对象集合
+ */
+function entityChildren(entity) {
+    return entity._children;
+}
+/**
+ * 根据id获取entity
+ * @param id
+ */
+function getEntityById(viewer, id) {
+    return viewer.entities.getById(id);
+}
+
+/**
+ * 移除指定primitive
+ * @param viewer - 地图场景
+ * @param primitive - 待移除primitive对象
+ */
+function removePrimitive(viewer, primitive) {
+    primitive && viewer.scene.primitives.remove(primitive);
+}
+/**
+ * 根据id获取指定primitive图层
+ * @param viewer
+ * @param id
+ * @returns
+ */
+var getPrimitiveById = function (viewer, id) {
+    var primitives = viewer.scene.primitives._primitives;
+    return primitives.find(function (layer) { return layer.id === id; });
+};
+
+/**
+ * 移除影像图层
+ * @param {Object} viewer 地图场景对象
+ * @param layer 待移除图层
+ */
+function removeImageryLayer(viewer, layer) {
+    layer && viewer.imageryLayers.remove(layer);
+}
+/**
+ * 根据Id返回对应的Imagery（影像图层）
+ * @param {Viewer} viewer
+ * @param {string} id
+ * @returns
+ */
+function getImageryById(viewer, id) {
+    var imageryList = viewer.imageryLayers._layers;
+    return imageryList.find(function (imagery) { return imagery.id === id; });
+}
+
+/**
  * 获取场景中所有的图层
  * @param viewer
  * @returns
@@ -405,6 +523,268 @@ function SetCusMark(item, type, geo, pick) {
     item.CustomGeo = geo;
     item.AllowPick = pick;
 }
+/**
+ * 返回图层类型
+ * @param layer 图层对象
+ * @returns 图层类型：Entity/Primitive/3DTiles/ImageryLayer
+ */
+function layerType(layer) {
+    if (layer instanceof Entity)
+        return "Entity";
+    if (layer instanceof BillboardCollection ||
+        layer instanceof Primitive ||
+        layer instanceof GroundPrimitive ||
+        layer instanceof GroundPolylinePrimitive)
+        return "Primitive";
+    if (layer instanceof Cesium3DTileset)
+        return "3DTiles";
+    if (layer instanceof ImageryLayer)
+        return "ImageryLayer";
+    return layer.CustomType;
+}
+/**
+ * 移除指定图层
+ * @param viewer - 地图场景
+ * @param layer - 待移除图层
+ */
+function removeLayer(viewer, layer) {
+    var type = layerType(layer);
+    switch (type.toLowerCase()) {
+        case "entity":
+            removeEntity(viewer, layer);
+            break;
+        case "primitive":
+            removePrimitive(viewer, layer);
+            break;
+        case "3dtiles":
+            // remove3Dtiles(viewer, layer)
+            break;
+        case "imagerylayer":
+            removeImageryLayer(viewer, layer);
+            break;
+    }
+}
+/**
+ * 根据id获取图层
+ * @param {*} viewer
+ * @param {*} id
+ * @returns
+ */
+function getLayerById(viewer, id) {
+    var layer = getEntityById(viewer, id) ||
+        getPrimitiveById(viewer, id) ||
+        getImageryById(viewer, id);
+    return layer;
+}
+
+/**
+ * 根据像素px值拾取位置点
+ * @method
+ * @description 位置：Coordinates.getCatesian3FromPX
+ * @param {Viewer} viewer 地图场景
+ * @param {Cartesian2} px 屏幕坐标
+ * @returns {Cartesian3 | null} 位置点笛卡尔坐标
+ */
+var getCatesian3FromPX = function (viewer, px) {
+    var scene = viewer.scene;
+    var picks = scene.drillPick(px);
+    var cartesian = undefined;
+    var isOn3dtiles = false;
+    for (var i in picks) {
+        var pick = picks[i];
+        var primitive = pick && pick.primitive;
+        if (primitive instanceof Cesium3DTileFeature ||
+            primitive instanceof Cesium3DTileset ||
+            primitive instanceof Model) {
+            isOn3dtiles = true;
+        }
+        if (isOn3dtiles) {
+            scene.pick(px);
+            cartesian = scene.pickPosition(px);
+            if (cartesian) {
+                var cartographic = Cartographic.fromCartesian(cartesian);
+                var x = Math.toDegrees(cartographic.longitude), y = Math.toDegrees(cartographic.latitude), z = cartographic.height;
+                cartesian = transformWGS84ToCartesian({ x: x, y: y, z: z });
+            }
+        }
+    }
+    var isOnTerrain = false; // 地形
+    var boolTerrain = viewer.terrainProvider instanceof EllipsoidTerrainProvider;
+    if (!isOn3dtiles && !boolTerrain) {
+        var ray = scene.camera.getPickRay(px);
+        if (!ray)
+            return null;
+        cartesian = scene.globe.pick(ray, scene);
+        isOnTerrain = true;
+    }
+    // 地球
+    if (!isOn3dtiles && !isOnTerrain && boolTerrain) {
+        cartesian = scene.camera.pickEllipsoid(px, scene.globe.ellipsoid);
+    }
+    if (cartesian) {
+        var position = transformCartesianToWGS84(cartesian);
+        if (position.z && position.z < 0) {
+            position.z = 0.01;
+            cartesian = transformWGS84ToCartesian(position);
+        }
+        return cartesian;
+    }
+    return null;
+};
+/**
+ * WGS84坐标转笛卡尔坐标
+ * @method
+ * @description 位置：Coordinates.transformWGS84ToCartesian
+ * @param {DegreePos} position WGS84坐标
+ * @returns {Cartesian3} 笛卡尔坐标
+ */
+var transformWGS84ToCartesian = function (position) {
+    var x = position.x, y = position.y, _a = position.z, z = _a === void 0 ? 0 : _a;
+    return position
+        ? Cartesian3.fromDegrees(x, y, z, Ellipsoid.WGS84)
+        : Cartesian3.ZERO;
+};
+/**
+ * 笛卡尔坐标转WGS84
+ * @method
+ * @description 位置：Coordinates.transformCartesianToWGS84
+ * @param {Cartesian3} cartesian3 笛卡尔坐标
+ * @return {DegreePos} WGS84坐标
+ */
+var transformCartesianToWGS84 = function (cartesian3) {
+    var cartographic = Ellipsoid.WGS84.cartesianToCartographic(cartesian3);
+    var longitude = cartographic.longitude, latitude = cartographic.latitude, height = cartographic.height;
+    return {
+        x: Math.toDegrees(longitude),
+        y: Math.toDegrees(latitude),
+        z: height,
+    };
+};
+/**
+ * WGS84坐标转弧度坐标
+ * @method
+ * @description 位置：Coordinates.transformWGS84ToCartographic
+ * @param {DegreePos} position WGS84坐标点
+ * @return {Cesium.Cartographic} 弧度坐标点
+ */
+function transformWGS84ToCartographic(position) {
+    return position
+        ? Cartographic.fromDegrees(position.x, position.y, position.z)
+        : Cartographic.ZERO;
+}
+/**
+ * 弧度坐标转WGS84坐标
+ * @method
+ * @description 位置：Coordinates.transformCartographicToWGS84
+ * @param {Cartographic} cartographic 弧度坐标
+ * @returns {DegreePos} WGS84经纬度坐标
+ */
+function transformCartographicToWGS84(cartographic) {
+    var longitude = cartographic.longitude, latitude = cartographic.latitude, height = cartographic.height;
+    return {
+        x: Math.toDegrees(longitude),
+        y: Math.toDegrees(latitude),
+        z: height,
+    };
+}
+/**
+ * 获取经纬度点集高度(限地形)
+ * @method
+ * @description 位置：Coordinates.height4Degrees
+ * @param {Cesium.TerrainProvider} terrain 当前场景地形对象
+ * @param {Array<DegreePos>} points 经纬度坐标数组
+ * @param {boolean} [car3Only=false] 是否仅返回笛卡尔坐标数组
+ * @returns {Promise<T>} 异步返回：高度值数组
+ */
+function height4Degrees(terrain_1, points_1) {
+    return __awaiter(this, arguments, void 0, function (terrain, points, car3Only) {
+        var cartographics, result;
+        if (car3Only === void 0) { car3Only = false; }
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    cartographics = points.map(function (point) {
+                        return Cartographic.fromDegrees(point.x, point.y);
+                    });
+                    return [4 /*yield*/, height4Cartographics(terrain, cartographics, car3Only)];
+                case 1:
+                    result = _a.sent();
+                    return [2 /*return*/, result];
+            }
+        });
+    });
+}
+/**
+ * 获取笛卡尔点集高度(限地形)
+ * @method
+ * @description 位置：Coordinates.height4Positions
+ * @param {Cesium.TerrainProvider} terrain 当前场景地形对象
+ * @param {Array<Cartesian3>} points 笛卡尔坐标数组
+ * @param {boolean} [car3Only=false] 是否仅返回笛卡尔坐标数组
+ * @returns {Promise<T>} 异步返回：高度值数组
+ */
+function height4Positions(terrain_1, points_1) {
+    return __awaiter(this, arguments, void 0, function (terrain, points, car3Only) {
+        var cartographics, result;
+        if (car3Only === void 0) { car3Only = false; }
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    cartographics = points.map(function (ele) { return Cartographic.fromCartesian(ele); });
+                    return [4 /*yield*/, height4Cartographics(terrain, cartographics, car3Only)];
+                case 1:
+                    result = _a.sent();
+                    return [2 /*return*/, result];
+            }
+        });
+    });
+}
+/**
+ * 获取cartographics弧度点集高度(限地形)
+ * @method
+ * @description 位置：Coordinates.height4Cartographics
+ * @param {Cesium.TerrainProvider} terrain 当前场景地形对象
+ * @param {Array<Cartographic>} points 笛卡尔坐标数组
+ * @param {boolean} [car3Only=false] 是否仅返回笛卡尔坐标数组
+ * @returns {Promise<T>} 异步返回：高度值数组
+ */
+function height4Cartographics(terrain_1, cartographics_1) {
+    return __awaiter(this, arguments, void 0, function (terrain, cartographics, car3Only) {
+        var updatedCartographics, result;
+        if (car3Only === void 0) { car3Only = false; }
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, sampleTerrainMostDetailed(terrain, cartographics)];
+                case 1:
+                    updatedCartographics = _a.sent();
+                    console.log(updatedCartographics);
+                    result = updatedCartographics.map(function (cartographic) {
+                        var cartesian3 = Cartographic.toCartesian(cartographic);
+                        return car3Only
+                            ? cartesian3
+                            : {
+                                degree: transformCartographicToWGS84(cartographic),
+                                cartesian3: cartesian3,
+                                cartographic: cartographic,
+                            };
+                    });
+                    return [2 /*return*/, result];
+            }
+        });
+    });
+}
+
+var Coordinate = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    getCatesian3FromPX: getCatesian3FromPX,
+    transformWGS84ToCartesian: transformWGS84ToCartesian,
+    transformCartesianToWGS84: transformCartesianToWGS84,
+    transformWGS84ToCartographic: transformWGS84ToCartographic,
+    transformCartographicToWGS84: transformCartographicToWGS84,
+    height4Degrees: height4Degrees,
+    height4Positions: height4Positions,
+    height4Cartographics: height4Cartographics
+});
 
 /**
  * 地图添加点数据-Primitive形式
@@ -413,17 +793,33 @@ function SetCusMark(item, type, geo, pick) {
  * @param options
  * @returns
  */
-function PointPrimitiveAdd(viewer, positions, options) {
-    if (options === void 0) { options = []; }
-    var primitive = viewer.scene.primitives.add(new PointPrimitiveCollection());
-    for (var index = 0; index < positions.length; index++) {
-        var option = new PointGraphic(options[index]).value;
-        var position = positions[index];
-        var point = __assign({ position: position }, option);
-        SetCusMark(primitive, "primitive", "point", option.allowPick);
-        primitive.add(point);
-    }
-    return primitive;
+function PointPrimitiveAdd(viewer_1, positions_1) {
+    return __awaiter(this, arguments, void 0, function (viewer, positions, options) {
+        var onGround, primitive, index, option, position, point;
+        if (options === void 0) { options = []; }
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    onGround = options[0].onGround;
+                    if (!onGround) return [3 /*break*/, 2];
+                    return [4 /*yield*/, height4Positions(viewer.terrainProvider, positions, true)];
+                case 1:
+                    positions = (_a.sent());
+                    _a.label = 2;
+                case 2:
+                    primitive = viewer.scene.primitives.add(new PointPrimitiveCollection());
+                    for (index = 0; index < positions.length; index++) {
+                        option = new PointGraphic(options[index]).value;
+                        console.log("当前对象配置：", option);
+                        position = positions[index];
+                        point = __assign({ position: position }, option);
+                        SetCusMark(primitive, "primitive", "point", option.allowPick);
+                        primitive.add(point);
+                    }
+                    return [2 /*return*/, primitive];
+            }
+        });
+    });
 }
 function PointEntityAdd(viewer, positions, options) {
     if (options === void 0) { options = []; }
@@ -454,15 +850,59 @@ var Add = /** @class */ (function () {
     /**
      * 添加点-Primitive形式
      * @param {Cartesian3} position 点位置，笛卡尔坐标
-     * @param {PointOption} options 点参数
+     * @param {PointOption} option 点参数
      * @returns {Cesium.Primitive} 点对象，Primitive类对象，参照Cesium
      */
-    Add.prototype.addPointPrimitive = function (position, options) {
-        var pointPrimitive = PointPrimitiveAdd(this.viewer, [position], [options]);
-        return pointPrimitive;
+    Add.prototype.addPointPrimitive = function (position, option) {
+        return __awaiter(this, void 0, void 0, function () {
+            var pointPrimitive;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, PointPrimitiveAdd(this.viewer, [position], [option])];
+                    case 1:
+                        pointPrimitive = _a.sent();
+                        return [2 /*return*/, pointPrimitive];
+                }
+            });
+        });
     };
-    Add.prototype.addPointEntity = function (position, options) {
-        var pointEntity = PointEntityAdd(this.viewer, [position], [options]);
+    /**
+     * 添加点集-Primitive形式
+     * @param {Cartesian3[]} positions 点位置，笛卡尔坐标
+     * @param {PointOption[]} options 点参数
+     * @returns {Cesium.Primitive} 点对象，Primitive类对象，参照Cesium
+     */
+    Add.prototype.addPointPrimitives = function (positions, options) {
+        return __awaiter(this, void 0, void 0, function () {
+            var pointPrimitive;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, PointPrimitiveAdd(this.viewer, positions, options)];
+                    case 1:
+                        pointPrimitive = _a.sent();
+                        return [2 /*return*/, pointPrimitive];
+                }
+            });
+        });
+    };
+    /**
+     * 添加点-Entity形式
+     * @param {Cartesian3} position 点位置，笛卡尔坐标集合
+     * @param {PointOption} option 点参数
+     * @returns {Cesium.Entity} 点对象，Entity类对象，参照Cesium
+     */
+    Add.prototype.addPointEntity = function (position, option) {
+        var pointEntity = PointEntityAdd(this.viewer, [position], [option]);
+        return pointEntity;
+    };
+    /**
+     * 添加点集-Entity形式
+     * @param {Cartesian3[]} positions 点位置，笛卡尔坐标集合
+     * @param {PointOption[]} options 点参数
+     * @returns {Cesium.Entity} 点对象，Entity parent类对象，参照Cesium
+     */
+    Add.prototype.addPointEntities = function (positions, options) {
+        var pointEntity = PointEntityAdd(this.viewer, positions, options);
         return pointEntity;
     };
     return Add;
@@ -472,9 +912,13 @@ var Layers = /** @class */ (function () {
     /**
      * 地形主类
      * @param {Viewer} viewer
+     * @see {@link Add} - 添加对象类
      */
     function Layers(viewer) {
         this.viewer = viewer;
+        /**
+         * 图层-添加对象类
+         */
         this.Add = new Add(this.viewer);
     }
     Object.defineProperty(Layers.prototype, "_layers", {
@@ -487,7 +931,126 @@ var Layers = /** @class */ (function () {
         enumerable: false,
         configurable: true
     });
+    /**
+     * 根据id获取图层
+     * @param {String} id 待获取图层id
+     * @returns 图层对象
+     */
+    Layers.prototype.getById = function (id) {
+        return getLayerById(this.viewer, id);
+    };
+    /**
+     * 移除指定图层
+     * @param {Object} layer 待移除图层
+     */
+    Layers.prototype.remove = function (layer) {
+        removeLayer(this.viewer, layer);
+    };
+    /**
+     * 移除指定ID图层
+     * @param {String} id 图层Id
+     */
+    Layers.prototype.removeById = function (id) {
+        var layer = this.getById(id);
+        layer && this.remove(layer);
+    };
     return Layers;
+}());
+
+/*
+ * 通用方法
+ * @Author: jianlei wang
+ * @Date: 2025-04-23 09:42:04
+ * @Last Modified by: jianlei wang
+ * @Last Modified time: 2025-09-26 09:44:11
+ */
+/**
+ * 生成唯一id
+ * @returns 例：936e0deb-c208-4098-9959-327e519e63e2
+ */
+function randomId() {
+    var tempUrl = URL.createObjectURL(new Blob());
+    var uuid = tempUrl.toString();
+    URL.revokeObjectURL(tempUrl);
+    return uuid.substring(uuid.lastIndexOf("/") + 1);
+}
+/**
+ * 安全执行回调
+ */
+function safeCallback(callback, data) {
+    callback && typeof callback === "function" && callback(data);
+}
+
+/**
+ * 开启全局拾取
+ * @param viewer
+ * @param handler
+ * @param callback
+ */
+function initPickGlobal(viewer, callback) {
+    var _this = this;
+    viewer.EventHandler.on("leftClick", function (e) { return __awaiter(_this, void 0, void 0, function () {
+        var pos, pick, pickRay, featuresPromise, imagery;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    pos = getCatesian3FromPX(viewer, e.position);
+                    if (!defined(pos))
+                        return [2 /*return*/];
+                    pick = viewer.scene.drillPick(e.position) // 获取 pick 拾取对象
+                    ;
+                    // 优先拾取矢量
+                    // 判断是否获取到了 pick 对象
+                    if (defined(pick) && pick.length > 0) {
+                        safeCallback(callback, { pos: pos, pick: pick });
+                        return [2 /*return*/];
+                    }
+                    pickRay = viewer.camera.getPickRay(e.position);
+                    if (!defined(pickRay)) return [3 /*break*/, 2];
+                    return [4 /*yield*/, viewer.imageryLayers.pickImageryLayerFeatures(pickRay, viewer.scene)];
+                case 1:
+                    featuresPromise = _a.sent();
+                    imagery = featuresPromise && featuresPromise[0];
+                    if (imagery != null && imagery.imageryLayer) {
+                        safeCallback(callback, { pos: pos, pick: imagery });
+                        return [2 /*return*/];
+                    }
+                    _a.label = 2;
+                case 2: return [2 /*return*/];
+            }
+        });
+    }); });
+    viewer.EventHandler.on("mouseMove", function (e) {
+        var endPos = e.endPosition;
+        var pick = viewer.scene.pick(endPos);
+        document.body.style.cursor = defined(pick) ? "pointer" : "default";
+    });
+}
+
+var Handler = /** @class */ (function () {
+    /**
+     * 地图Handler句柄主类
+     * @param viewer
+     */
+    function Handler(viewer) {
+        this.viewer = viewer;
+    }
+    /**
+     * 开启全局对象拾取(针对于矢量和wms服务数据)
+     * @param {Boolean} bool - 是否开启
+     * @param {Function} callback - 回调函数，返回拾取对象集合
+     */
+    Handler.prototype.pickEnabled = function (bool, callback) {
+        this.viewer.EventHandler.offEvents(["leftClick", "mouseMove"]);
+        bool && initPickGlobal(this.viewer, callback);
+    };
+    /**
+     * 重置鼠标事件
+     */
+    Handler.prototype.reset = function () {
+        this.viewer.EventHandler.clear();
+    };
+    return Handler;
 }());
 
 // 设置默认相机观察范围（覆盖Cesium默认设置）
@@ -499,7 +1062,6 @@ var Viewer = /** @class */ (function (_super) {
      * @extends Cesium.Viewer
      * @param {Element | string} container - DOM元素或元素ID，作为地图容器
      * @param {ViewOption} [options] - 地图配置选项（合并默认配置）
-     * @see {@link Terrain} - 地形主类（已同步）
      * @description
      * 增强版地图场景类，继承自 Cesium.Viewer，提供了更丰富的功能和配置选项。
      * @example
@@ -530,13 +1092,22 @@ var Viewer = /** @class */ (function (_super) {
          * @type {EventEmitter}
          */
         _this.EventHandler = new EventEmitter(_this);
-        _this.initBaseConfig();
         /**
-         * 地形主类
+         * 地图Handler句柄主类，关联地图点击通用方法
+         * @type {Handler}
+         */
+        _this.Handlers = new Handler(_this);
+        /**
+         * 地形主类，地形相关方法
          * @type {Terrain}
          */
         _this.Terrain = new Terrain(_this);
+        /**
+         * 图层主类，图层相关方法
+         * @type {Layers}
+         */
         _this.Layers = new Layers(_this);
+        _this.initBaseConfig();
         return _this;
     }
     /**
@@ -662,24 +1233,6 @@ var Viewer = /** @class */ (function (_super) {
     return Viewer;
 }(Cesium.Viewer));
 
-/*
- * 通用方法
- * @Author: jianlei wang
- * @Date: 2025-04-23 09:42:04
- * @Last Modified by: jianlei wang
- * @Last Modified time: 2025-05-12 16:18:53
- */
-/**
- * 生成唯一id
- * @returns 例：936e0deb-c208-4098-9959-327e519e63e2
- */
-function randomId() {
-    var tempUrl = URL.createObjectURL(new Blob());
-    var uuid = tempUrl.toString();
-    URL.revokeObjectURL(tempUrl);
-    return uuid.substring(uuid.lastIndexOf("/") + 1);
-}
-
 var PointGraphic = /** @class */ (function (_super) {
     __extends(PointGraphic, _super);
     /**
@@ -701,6 +1254,7 @@ var PointGraphic = /** @class */ (function (_super) {
         _this._allowPick = new ConstantProperty(allowPick || true);
         _this._id = id || randomId();
         _this._featureAttribute = new ConstantProperty(__assign({ id: _this._id }, featureAttribute));
+        _this.show = new ConstantProperty(true);
         return _this;
     }
     Object.defineProperty(PointGraphic.prototype, "value", {
@@ -708,8 +1262,14 @@ var PointGraphic = /** @class */ (function (_super) {
          * 点几何属性参数值
          */
         get: function () {
-            var _a = this, color = _a.color, outlineColor = _a.outlineColor, pixelSize = _a.pixelSize, outlineWidth = _a.outlineWidth, heightReference = _a.heightReference, scaleByDistance = _a.scaleByDistance, show = _a.show, splitDirection = _a.splitDirection, translucencyByDistance = _a.translucencyByDistance, disableDepthTestDistance = _a.disableDepthTestDistance, distanceDisplayCondition = _a.distanceDisplayCondition, allowPick = _a.allowPick, featureAttribute = _a.featureAttribute, id = _a.id;
+            var _a = this, onGround = _a.onGround, pColor = _a.pColor, pOutlineColor = _a.pOutlineColor, allowPick = _a.allowPick, id = _a.id, featureAttribute = _a.featureAttribute, color = _a.color, outlineColor = _a.outlineColor, pixelSize = _a.pixelSize, outlineWidth = _a.outlineWidth, heightReference = _a.heightReference, scaleByDistance = _a.scaleByDistance, show = _a.show, splitDirection = _a.splitDirection, translucencyByDistance = _a.translucencyByDistance, disableDepthTestDistance = _a.disableDepthTestDistance, distanceDisplayCondition = _a.distanceDisplayCondition;
             var props = {
+                onGround: onGround,
+                pColor: pColor,
+                pOutlineColor: pOutlineColor,
+                allowPick: allowPick,
+                id: id,
+                featureAttribute: featureAttribute,
                 color: color,
                 outlineColor: outlineColor,
                 pixelSize: pixelSize,
@@ -721,12 +1281,8 @@ var PointGraphic = /** @class */ (function (_super) {
                 translucencyByDistance: translucencyByDistance,
                 disableDepthTestDistance: disableDepthTestDistance,
                 distanceDisplayCondition: distanceDisplayCondition,
-                allowPick: allowPick,
-                featureAttribute: featureAttribute,
-                id: id,
             };
             var result = {};
-            console.log("测试问题开始：", props);
             for (var key in props) {
                 var prop = props[key];
                 if (prop && typeof prop.getValue === "function") {
@@ -787,7 +1343,7 @@ var PointGraphic = /** @class */ (function (_super) {
          * 点轮廓线填充颜色
          */
         get: function () {
-            return this._pColor;
+            return this._pOutlineColor;
         },
         set: function (val) {
             this._pOutlineColor = val;
@@ -836,5 +1392,5 @@ var PointGraphic = /** @class */ (function (_super) {
     return PointGraphic;
 }(PointGraphics));
 
-export { BaseLayer, EventNameMap, PointGraphic as PointGraphics, Viewer };
+export { BaseLayer, Coordinate as Coordinates, EventNameMap, PointGraphic as PointGraphics, Viewer };
 //# sourceMappingURL=larkexplorer.esm.js.map

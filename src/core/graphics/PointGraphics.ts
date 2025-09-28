@@ -67,6 +67,7 @@ class PointGraphic extends PointGraphics {
       id: this._id,
       ...featureAttribute,
     })
+    this.show = new ConstantProperty(true)
   }
 
   /**
@@ -74,6 +75,12 @@ class PointGraphic extends PointGraphics {
    */
   get value() {
     const {
+      onGround,
+      pColor,
+      pOutlineColor,
+      allowPick,
+      id,
+      featureAttribute,
       color,
       outlineColor,
       pixelSize,
@@ -85,11 +92,14 @@ class PointGraphic extends PointGraphics {
       translucencyByDistance,
       disableDepthTestDistance,
       distanceDisplayCondition,
-      allowPick,
-      featureAttribute,
-      id,
     } = this
     const props: any = {
+      onGround,
+      pColor,
+      pOutlineColor,
+      allowPick,
+      id,
+      featureAttribute,
       color,
       outlineColor,
       pixelSize,
@@ -101,12 +111,8 @@ class PointGraphic extends PointGraphics {
       translucencyByDistance,
       disableDepthTestDistance,
       distanceDisplayCondition,
-      allowPick,
-      featureAttribute,
-      id,
     }
     const result: Record<string, any> = {}
-    console.log("测试问题开始：", props)
     for (const key in props) {
       const prop = props[key]
       if (prop && typeof prop.getValue === "function") {
@@ -153,7 +159,7 @@ class PointGraphic extends PointGraphics {
    * 点轮廓线填充颜色
    */
   get pOutlineColor() {
-    return this._pColor
+    return this._pOutlineColor
   }
   set pOutlineColor(val: string) {
     this._pOutlineColor = val
