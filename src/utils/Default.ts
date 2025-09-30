@@ -25,3 +25,10 @@ export const DEF_3DTILES_OPTION = {
   dynamicScreenSpaceErrorFactor: 1, // 暂时未知作用
   dynamicScreenSpaceError: true, // 根据测试，有了这个后，会在真正的全屏加载完之后才清晰化房屋
 }
+
+// 默认欧拉角
+export const DEF_HPR = {
+  heading: 6.283185307179586,
+  pitch: -1.5693096181732886,
+  roll: 0,
+}

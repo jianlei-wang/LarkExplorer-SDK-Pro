@@ -43,3 +43,25 @@ export function entityChildren(entity: Entity) {
 export function getEntityById(viewer: Viewer, id: string) {
   return viewer.entities.getById(id)
 }
+
+/**
+ * 跳转到entity对象
+ * @param viewer - 地图场景
+ * @param item - entity对象
+ */
+export function flyToEntity(viewer: any, item: Entity) {
+  const children = entityChildren(item)
+  children && children.length > 0 ? viewer.flyTo(children) : viewer.flyTo(item)
+}
+
+/**
+ * 定位到entity对象
+ * @param viewer - 地图场景
+ * @param item - entity对象
+ */
+export function zoomToEntity(viewer: any, item: Entity) {
+  const children = entityChildren(item)
+  children && children.length > 0
+    ? viewer.zoomTo(children)
+    : viewer.zoomTo(item)
+}

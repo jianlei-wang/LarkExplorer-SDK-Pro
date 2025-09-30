@@ -1,5 +1,5 @@
 import * as Cesium from 'cesium';
-import { ScreenSpaceEventType, ScreenSpaceEventHandler, ImageryLayer, SingleTileImageryProvider, ArcGisMapServerImageryProvider, WebMapTileServiceImageryProvider, createWorldTerrainAsync, Terrain as Terrain$1, CesiumTerrainProvider, NearFarScalar, Cesium3DTileset, Cartographic, Cartesian3, Math, Matrix4, Entity, BillboardCollection, Primitive, GroundPrimitive, GroundPolylinePrimitive, EllipsoidTerrainProvider, Ellipsoid, Cesium3DTileFeature, Model, sampleTerrainMostDetailed, PointPrimitiveCollection, CustomShader, UniformType, Transforms, defined, ConstantProperty, HeightReference, Color, PointGraphics } from 'cesium';
+import { ScreenSpaceEventType, ScreenSpaceEventHandler, ImageryLayer, SingleTileImageryProvider, ArcGisMapServerImageryProvider, WebMapTileServiceImageryProvider, createWorldTerrainAsync, Terrain as Terrain$1, CesiumTerrainProvider, Cartographic, Math as Math$1, EllipsoidTerrainProvider, Cartesian3, Ellipsoid, Cesium3DTileFeature, Cesium3DTileset, Model, sampleTerrainMostDetailed, Matrix4, Entity, BillboardCollection, Primitive, GroundPrimitive, GroundPolylinePrimitive, Rectangle, Cartesian2, NearFarScalar, PointPrimitiveCollection, GeometryInstance, PolygonGeometry, PolygonHierarchy, EllipsoidSurfaceAppearance, Material, Color, CustomShader, UniformType, Transforms, defined, JulianDate, clone, ConstantProperty, HeightReference, PointGraphics } from 'cesium';
 
 /******************************************************************************
 Copyright (c) Microsoft Corporation.
@@ -227,6 +227,12 @@ var DEF_3DTILES_OPTION = {
     dynamicScreenSpaceErrorFactor: 1, // 暂时未知作用
     dynamicScreenSpaceError: true, // 根据测试，有了这个后，会在真正的全屏加载完之后才清晰化房屋
 };
+// 默认欧拉角
+var DEF_HPR = {
+    heading: 6.283185307179586,
+    pitch: -1.5693096181732886,
+    roll: 0,
+};
 
 var globeImg = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAYAAAADCAYAAACwAX77AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsQAAA7EAZUrDhsAAABWSURBVBhXAUsAtP8BY3Z+/z0sAwCsygIAFAjlACUQ/QDV7QsAAQdAZP8iGv8ACQL/AFkrFQCg1fUA//4DAAE/XXH/HRcWAOPr7QATEhMADwwMAP389wC1nxmQIMsw2wAAAABJRU5ErkJggg==";
 
@@ -312,6 +318,622 @@ var BaseLayer = {
 };
 
 /**
+ * 根据像素px值拾取位置点
+ * @method
+ * @description 位置：Coordinates.getCatesian3FromPX
+ * @param {Viewer} viewer 地图场景
+ * @param {Cartesian2} px 屏幕坐标
+ * @returns {Cartesian3 | null} 位置点笛卡尔坐标
+ */
+var getCatesian3FromPX = function (viewer, px) {
+    var scene = viewer.scene;
+    var picks = scene.drillPick(px);
+    var cartesian = undefined;
+    var isOn3dtiles = false;
+    for (var i in picks) {
+        var pick = picks[i];
+        var primitive = pick && pick.primitive;
+        if (primitive instanceof Cesium3DTileFeature ||
+            primitive instanceof Cesium3DTileset ||
+            primitive instanceof Model) {
+            isOn3dtiles = true;
+        }
+        if (isOn3dtiles) {
+            scene.pick(px);
+            cartesian = scene.pickPosition(px);
+            if (cartesian) {
+                var cartographic = Cartographic.fromCartesian(cartesian);
+                var x = Math$1.toDegrees(cartographic.longitude), y = Math$1.toDegrees(cartographic.latitude), z = cartographic.height;
+                cartesian = transformWGS84ToCartesian({ x: x, y: y, z: z });
+            }
+        }
+    }
+    var isOnTerrain = false; // 地形
+    var boolTerrain = viewer.terrainProvider instanceof EllipsoidTerrainProvider;
+    if (!isOn3dtiles && !boolTerrain) {
+        var ray = scene.camera.getPickRay(px);
+        if (!ray)
+            return null;
+        cartesian = scene.globe.pick(ray, scene);
+        isOnTerrain = true;
+    }
+    // 地球
+    if (!isOn3dtiles && !isOnTerrain && boolTerrain) {
+        cartesian = scene.camera.pickEllipsoid(px, scene.globe.ellipsoid);
+    }
+    if (cartesian) {
+        var position = transformCartesianToWGS84(cartesian);
+        if (position.z && position.z < 0) {
+            position.z = 0.01;
+            cartesian = transformWGS84ToCartesian(position);
+        }
+        return cartesian;
+    }
+    return null;
+};
+/**
+ * 经纬度坐标数组转笛卡尔坐标数组
+ * @method
+ * @description 位置：Coordinates.PosFromDegreeArray
+ * @param {Array<Number[]>} positions 经纬度坐标数组，如：[[120,34],[121,35]]
+ * @returns {Array<Cartesian3>} 笛卡尔坐标数组
+ */
+function PosFromDegreeArray(positions) {
+    var result = [];
+    for (var index = 0; index < positions.length; index++) {
+        var pos = positions[index];
+        result.push(pos[0], pos[1]);
+    }
+    var points = Cartesian3.fromDegreesArray(result);
+    return points;
+}
+/**
+ * WGS84坐标转笛卡尔坐标
+ * @method
+ * @description 位置：Coordinates.transformWGS84ToCartesian
+ * @param {DegreePos} position WGS84坐标
+ * @returns {Cartesian3} 笛卡尔坐标
+ */
+var transformWGS84ToCartesian = function (position) {
+    var x = position.x, y = position.y, _a = position.z, z = _a === void 0 ? 0 : _a;
+    return position
+        ? Cartesian3.fromDegrees(x, y, z, Ellipsoid.WGS84)
+        : Cartesian3.ZERO;
+};
+/**
+ * 笛卡尔坐标转WGS84
+ * @method
+ * @description 位置：Coordinates.transformCartesianToWGS84
+ * @param {Cartesian3} cartesian3 笛卡尔坐标
+ * @return {DegreePos} WGS84坐标
+ */
+var transformCartesianToWGS84 = function (cartesian3) {
+    var cartographic = Ellipsoid.WGS84.cartesianToCartographic(cartesian3);
+    var longitude = cartographic.longitude, latitude = cartographic.latitude, height = cartographic.height;
+    return {
+        x: Math$1.toDegrees(longitude),
+        y: Math$1.toDegrees(latitude),
+        z: height,
+    };
+};
+/**
+ * 笛卡尔坐标点集合转WGS84点集合
+ * @method
+ * @description 位置：Coordinates.arrayCartesiansToWGS84
+ * @param {Array<Cartesian3>} cartesians 笛卡尔坐标点集合
+ * @returns {Array<DegreePos>} WGS84坐标点集合
+ */
+function arrayCartesiansToWGS84(cartesians) {
+    if (cartesians === void 0) { cartesians = []; }
+    return cartesians.map(function (item) { return transformCartesianToWGS84(item); });
+}
+/**
+ * WGS84坐标转弧度坐标
+ * @method
+ * @description 位置：Coordinates.transformWGS84ToCartographic
+ * @param {DegreePos} position WGS84坐标点
+ * @return {Cesium.Cartographic} 弧度坐标点
+ */
+function transformWGS84ToCartographic(position) {
+    return position
+        ? Cartographic.fromDegrees(position.x, position.y, position.z)
+        : Cartographic.ZERO;
+}
+/**
+ * 弧度坐标转WGS84坐标
+ * @method
+ * @description 位置：Coordinates.transformCartographicToWGS84
+ * @param {Cartographic} cartographic 弧度坐标
+ * @returns {DegreePos} WGS84经纬度坐标
+ */
+function transformCartographicToWGS84(cartographic) {
+    var longitude = cartographic.longitude, latitude = cartographic.latitude, height = cartographic.height;
+    return {
+        x: Math$1.toDegrees(longitude),
+        y: Math$1.toDegrees(latitude),
+        z: height,
+    };
+}
+/**
+ * 获取经纬度点集高度(限地形)
+ * @method
+ * @description 位置：Coordinates.height4Degrees
+ * @param {Cesium.TerrainProvider} terrain 当前场景地形对象
+ * @param {Array<DegreePos>} points 经纬度坐标数组
+ * @param {boolean} [car3Only=false] 是否仅返回笛卡尔坐标数组
+ * @returns {Promise<T>} 异步返回：高度值数组
+ */
+function height4Degrees(terrain_1, points_1) {
+    return __awaiter(this, arguments, void 0, function (terrain, points, car3Only) {
+        var cartographics, result;
+        if (car3Only === void 0) { car3Only = false; }
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    cartographics = points.map(function (point) {
+                        return Cartographic.fromDegrees(point.x, point.y);
+                    });
+                    return [4 /*yield*/, height4Cartographics(terrain, cartographics, car3Only)];
+                case 1:
+                    result = _a.sent();
+                    return [2 /*return*/, result];
+            }
+        });
+    });
+}
+/**
+ * 获取笛卡尔点集高度(限地形)
+ * @method
+ * @description 位置：Coordinates.height4Positions
+ * @param {Cesium.TerrainProvider} terrain 当前场景地形对象
+ * @param {Array<Cartesian3>} points 笛卡尔坐标数组
+ * @param {boolean} [car3Only=false] 是否仅返回笛卡尔坐标数组
+ * @returns {Promise<T>} 异步返回：高度值数组
+ */
+function height4Positions(terrain_1, points_1) {
+    return __awaiter(this, arguments, void 0, function (terrain, points, car3Only) {
+        var cartographics, result;
+        if (car3Only === void 0) { car3Only = false; }
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    cartographics = points.map(function (ele) { return Cartographic.fromCartesian(ele); });
+                    return [4 /*yield*/, height4Cartographics(terrain, cartographics, car3Only)];
+                case 1:
+                    result = _a.sent();
+                    return [2 /*return*/, result];
+            }
+        });
+    });
+}
+/**
+ * 获取cartographics弧度点集高度(限地形)
+ * @method
+ * @description 位置：Coordinates.height4Cartographics
+ * @param {Cesium.TerrainProvider} terrain 当前场景地形对象
+ * @param {Array<Cartographic>} points 笛卡尔坐标数组
+ * @param {boolean} [car3Only=false] 是否仅返回笛卡尔坐标数组
+ * @returns {Promise<T>} 异步返回：高度值数组
+ */
+function height4Cartographics(terrain_1, cartographics_1) {
+    return __awaiter(this, arguments, void 0, function (terrain, cartographics, car3Only) {
+        var updatedCartographics, result;
+        if (car3Only === void 0) { car3Only = false; }
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, sampleTerrainMostDetailed(terrain, cartographics)];
+                case 1:
+                    updatedCartographics = _a.sent();
+                    console.log(updatedCartographics);
+                    result = updatedCartographics.map(function (cartographic) {
+                        var cartesian3 = Cartographic.toCartesian(cartographic);
+                        return car3Only
+                            ? cartesian3
+                            : {
+                                degree: transformCartographicToWGS84(cartographic),
+                                cartesian3: cartesian3,
+                                cartographic: cartographic,
+                            };
+                    });
+                    return [2 /*return*/, result];
+            }
+        });
+    });
+}
+/**
+ * 返回点集的范围，默认弧度：[west, south, east, north]
+ * @method
+ * @description 位置：Coordinates.getExtent
+ * @param {Array<Cartesian3>} points 点集，笛卡尔坐标
+ * @param {Boolean} degrees 是否返回值为经纬度，true-返回值为经纬度值；false-返回值为弧度值
+ * @returns {Array<Number>} 四至范围 => [west, south, east, north]
+ */
+function getExtent(points, degrees) {
+    var west = 100000000, south = 100000000, east = -100000000, north = -100000000;
+    for (var i = 0; i < points.length; i++) {
+        var cartographic = Cartographic.fromCartesian(points[i]);
+        var longitude = cartographic.longitude, latitude = cartographic.latitude;
+        west = Math.min(longitude, west);
+        south = Math.min(latitude, south);
+        east = Math.max(longitude, east);
+        north = Math.max(latitude, north);
+    }
+    if (degrees) {
+        west = Math$1.toDegrees(west);
+        south = Math$1.toDegrees(south);
+        east = Math$1.toDegrees(east);
+        north = Math$1.toDegrees(north);
+    }
+    return [west, south, east, north];
+}
+/**
+ * 计算空间两点间距离（经纬度坐标）
+ * @param {number} lon1 - 第1个点经度
+ * @param {number} lat1 - 第1个点纬度
+ * @param {number} lon2 - 第2个点经度
+ * @param {number} lat2 - 第2个点维度
+ * @returns 距离：米
+ */
+function calculateDis(lon1, lat1, lon2, lat2) {
+    var R = 6371000; // 地球半径，单位米
+    var radLat1 = (Math.PI / 180) * lat1;
+    var radLon1 = (Math.PI / 180) * lon1;
+    var radLat2 = (Math.PI / 180) * lat2;
+    var radLon2 = (Math.PI / 180) * lon2;
+    // 计算经纬度差值
+    var deltaLat = radLat2 - radLat1;
+    var deltaLon = radLon2 - radLon1;
+    // 使用 Haversine 公式计算距离
+    var a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+        Math.cos(radLat1) *
+            Math.cos(radLat2) *
+            Math.sin(deltaLon / 2) *
+            Math.sin(deltaLon / 2);
+    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    // 计算距离并返回
+    var distance = R * c;
+    return distance;
+}
+/**
+ * 经纬度四至转弧度四至
+ * @method
+ * @param {Array<Number>} extent 经纬度四至，如：[112,23,120,30]
+ * @returns {Array<Number>}  转换后的弧度四至
+ */
+function extentToRadians(extent) {
+    return extent.map(function (val) { return degreesToRadians(val); });
+}
+/**
+ * 角度转弧度
+ * @method
+ * @param {Number} degrees 角度值
+ * @returns {Number} 弧度值
+ */
+function degreesToRadians(degrees) {
+    var radians = Math$1.toRadians(degrees);
+    return radians;
+}
+
+var Coordinate = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    getCatesian3FromPX: getCatesian3FromPX,
+    PosFromDegreeArray: PosFromDegreeArray,
+    transformWGS84ToCartesian: transformWGS84ToCartesian,
+    transformCartesianToWGS84: transformCartesianToWGS84,
+    arrayCartesiansToWGS84: arrayCartesiansToWGS84,
+    transformWGS84ToCartographic: transformWGS84ToCartographic,
+    transformCartographicToWGS84: transformCartographicToWGS84,
+    height4Degrees: height4Degrees,
+    height4Positions: height4Positions,
+    height4Cartographics: height4Cartographics,
+    getExtent: getExtent,
+    calculateDis: calculateDis,
+    extentToRadians: extentToRadians,
+    degreesToRadians: degreesToRadians
+});
+
+/**
+ * 移除指定entity
+ * @param viewer - 地图场景
+ * @param entity - 待移除对象
+ */
+function removeEntity(viewer, entity) {
+    var children = entityChildren(entity);
+    children &&
+        children.forEach(function (ele) {
+            removeEntity(viewer, ele);
+        });
+    entity.PostRender && entity.PostRender();
+    entity.CustomDom && viewer.container.removeChild(entity.CustomDom);
+    viewer.entities.remove(entity);
+}
+/**
+ * 获取entity的子对象
+ * @param entity - entity对象
+ * @returns - 子对象集合
+ */
+function entityChildren(entity) {
+    return entity._children;
+}
+/**
+ * 根据id获取entity
+ * @param id
+ */
+function getEntityById(viewer, id) {
+    return viewer.entities.getById(id);
+}
+/**
+ * 跳转到entity对象
+ * @param viewer - 地图场景
+ * @param item - entity对象
+ */
+function flyToEntity(viewer, item) {
+    var children = entityChildren(item);
+    children && children.length > 0 ? viewer.flyTo(children) : viewer.flyTo(item);
+}
+/**
+ * 定位到entity对象
+ * @param viewer - 地图场景
+ * @param item - entity对象
+ */
+function zoomToEntity(viewer, item) {
+    var children = entityChildren(item);
+    children && children.length > 0
+        ? viewer.zoomTo(children)
+        : viewer.zoomTo(item);
+}
+
+/**
+ * 移除指定primitive
+ * @param viewer - 地图场景
+ * @param primitive - 待移除primitive对象
+ */
+function removePrimitive(viewer, primitive) {
+    primitive && viewer.scene.primitives.remove(primitive);
+}
+/**
+ * 根据id获取指定primitive图层
+ * @param viewer
+ * @param id
+ * @returns
+ */
+function getPrimitiveById(viewer, id) {
+    var primitives = viewer.scene.primitives._primitives;
+    return primitives.find(function (layer) { return layer.id === id; });
+}
+/**
+ * 跳转到primitive对象
+ * @param {*} viewer
+ * @param {*} item
+ */
+var flyToPrimitive = function (viewer, item) {
+    if (!item.CusExtent)
+        return;
+    flyToExtent(viewer, item.CusExtent);
+};
+
+/**
+ * 移除影像图层
+ * @param {Object} viewer 地图场景对象
+ * @param layer 待移除图层
+ */
+function removeImageryLayer(viewer, layer) {
+    layer && viewer.imageryLayers.remove(layer);
+}
+/**
+ * 根据Id返回对应的Imagery（影像图层）
+ * @param {Viewer} viewer
+ * @param {string} id
+ * @returns
+ */
+function getImageryById(viewer, id) {
+    var imageryList = viewer.imageryLayers._layers;
+    return imageryList.find(function (imagery) { return imagery.id === id; });
+}
+
+/**
+ * 加载3DTiles图层
+ * @param {*} viewer
+ * @param {*} url
+ * @param {*} height
+ * @returns
+ */
+function load3Dtiles(viewer, url, height) {
+    return __awaiter(this, void 0, void 0, function () {
+        var model;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, Cesium3DTileset.fromUrl(url, DEF_3DTILES_OPTION)
+                    // 超出可视区的瓦片进行销毁，提高性能
+                ];
+                case 1:
+                    model = _a.sent();
+                    // 超出可视区的瓦片进行销毁，提高性能
+                    model.tileLoad.addEventListener(function (tile) {
+                        tile.tileset.trimLoadedTiles();
+                    });
+                    height && offsetHeight(model, height);
+                    model = viewer.scene.primitives.add(model);
+                    SetCusMark(model, "primitive", "3dtiles", true);
+                    return [2 /*return*/, model];
+            }
+        });
+    });
+}
+/**
+ * 加载3DTIles图层至指定位置
+ * @param {*} viewer
+ * @param {*} url
+ * @param {*} pos
+ */
+function load3DtilesOnPos(viewer, url, pos) {
+    return __awaiter(this, void 0, void 0, function () {
+        var model;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, Cesium3DTileset.fromUrl(url, DEF_3DTILES_OPTION)];
+                case 1:
+                    model = _a.sent();
+                    model.tileLoad.addEventListener(function (tile) {
+                        tile.tileset.trimLoadedTiles();
+                    });
+                    pos && updatePos(model, pos);
+                    viewer.scene.primitives.add(model);
+                    SetCusMark(model, "primitive", "3dtiles", true);
+                    return [2 /*return*/, model];
+            }
+        });
+    });
+}
+/**
+ * 调整3dtiles模型高度
+ * @param model - 3dtiles模型
+ * @param h - 调整后高度
+ * @param lng - 调整后经度，WGS84坐标
+ * @param lat - 调整后纬度，WGS84坐标
+ */
+function updatePos(model, pos) {
+    var x = pos.x, y = pos.y, _a = pos.z, z = _a === void 0 ? 0 : _a;
+    //高度偏差，正数为向上偏，负数为向下偏，根据真实的模型位置不断进行调整
+    //计算tileset的绑定范围
+    var boundingSphere = model.boundingSphere;
+    //计算中心点位置
+    var cartographic = Cartographic.fromCartesian(boundingSphere.center);
+    var longitude = cartographic.longitude, latitude = cartographic.latitude, height = cartographic.height;
+    //计算中心点位置坐标
+    var surface = Cartesian3.fromRadians(longitude, latitude, 0);
+    var lng = x ? Math$1.toRadians(x) : longitude;
+    var lat = y ? Math$1.toRadians(y) : latitude;
+    //偏移后的三维坐标
+    var offset = Cartesian3.fromRadians(lng, lat, z - height);
+    var translation = Cartesian3.subtract(offset, surface, new Cartesian3());
+    //tileset.modelMatrix转换
+    model.modelMatrix = Matrix4.fromTranslation(translation);
+}
+function offsetHeight(model, height) {
+    //高度偏差，正数为向上偏，负数为向下偏，根据真实的模型位置不断进行调整
+    //计算tileset的绑定范围
+    var boundingSphere = model.boundingSphere;
+    //计算中心点位置
+    var cartographic = Cartographic.fromCartesian(boundingSphere.center);
+    var longitude = cartographic.longitude, latitude = cartographic.latitude;
+    //计算中心点位置坐标
+    var surface = Cartesian3.fromRadians(longitude, latitude, 0);
+    //偏移后的三维坐标
+    var offset = Cartesian3.fromRadians(longitude, latitude, height);
+    var translation = Cartesian3.subtract(offset, surface, new Cartesian3());
+    //tileset.modelMatrix转换
+    model.modelMatrix = Matrix4.fromTranslation(translation);
+}
+/**
+ * 移除3dtiles图层
+ * @param viewer - 地图场景
+ * @param model - 待移除模型
+ */
+function remove3Dtiles(viewer, model) {
+    model && viewer.scene.primitives.remove(model);
+}
+/**
+ * 跳转到3dtiles对象
+ * @param viewer
+ * @param item
+ */
+function flyTo3DTiles(viewer, item) {
+    item && viewer.flyTo(item);
+}
+/**
+ * 定位到3dtiles对象
+ * @param viewer
+ * @param item
+ */
+function zoomTo3DTiles(viewer, item) {
+    item && viewer.zoomTo(item);
+}
+
+/**
+ * 获取场景中所有的图层
+ * @param viewer
+ * @returns
+ */
+function getAllLayers(viewer) {
+    //@ts-ignore
+    var entities = viewer.entities._entities._array;
+    //@ts-ignore
+    var imageryLayers = viewer.imageryLayers._layers;
+    //@ts-ignore
+    var primitives = viewer.scene.primitives._primitives;
+    //@ts-ignore
+    var dataSources = viewer.dataSources._dataSources;
+    return { entities: entities, imageryLayers: imageryLayers, primitives: primitives, dataSources: dataSources };
+}
+/**
+ * 给图层打上自定义标记，便于删除
+ * @param item - 待标记对象
+ * @param type - 对象类型["imagerylayer","entity","primitive","particle"]
+ * @param geo - 对象几何类型["WebMapTileServiceImageryProvider","Point","SpreadPoint","Polyline","Polygon","Circle","Radar","Model","fire","Billboard","panel"]
+ * @param pick - 是否支持点选
+ */
+function SetCusMark(item, type, geo, pick) {
+    if (pick === void 0) { pick = true; }
+    item.CustomType = type;
+    item.CustomGeo = geo;
+    item.AllowPick = pick;
+}
+/**
+ * 返回图层类型
+ * @param layer 图层对象
+ * @returns 图层类型：Entity/Primitive/3DTiles/ImageryLayer
+ */
+function layerType(layer) {
+    if (layer instanceof Entity)
+        return "Entity";
+    if (layer instanceof BillboardCollection ||
+        layer instanceof Primitive ||
+        layer instanceof GroundPrimitive ||
+        layer instanceof GroundPolylinePrimitive)
+        return "Primitive";
+    if (layer instanceof Cesium3DTileset)
+        return "3DTiles";
+    if (layer instanceof ImageryLayer)
+        return "ImageryLayer";
+    return layer.CustomType;
+}
+/**
+ * 移除指定图层
+ * @param viewer - 地图场景
+ * @param layer - 待移除图层
+ */
+function removeLayer(viewer, layer) {
+    var type = layerType(layer);
+    switch (type.toLowerCase()) {
+        case "entity":
+            removeEntity(viewer, layer);
+            break;
+        case "primitive":
+            removePrimitive(viewer, layer);
+            break;
+        case "3dtiles":
+            remove3Dtiles(viewer, layer);
+            break;
+        case "imagerylayer":
+            removeImageryLayer(viewer, layer);
+            break;
+    }
+}
+/**
+ * 根据id获取图层
+ * @param {*} viewer
+ * @param {*} id
+ * @returns
+ */
+function getLayerById(viewer, id) {
+    var layer = getEntityById(viewer, id) ||
+        getPrimitiveById(viewer, id) ||
+        getImageryById(viewer, id);
+    return layer;
+}
+
+/**
  * 获取地图尺寸
  */
 function mapSize(viewer) {
@@ -324,6 +946,172 @@ function mapSize(viewer) {
 function mapImg(viewer) {
     viewer.render(); //避免出现导出是一张黑乎乎的图片
     return viewer.scene.canvas.toDataURL("image/png");
+}
+/**
+ * 获取比例尺，页面1px的距离，单位m
+ */
+function getScale(viewer) {
+    var _a = mapSize(viewer), width = _a.width, height = _a.height;
+    var midX = Math.floor(width / 2);
+    var midY = Math.floor(height / 2);
+    var leftPos, rightPos;
+    do {
+        leftPos = viewer.camera.pickEllipsoid(new Cartesian2(midX, midY));
+        rightPos = viewer.camera.pickEllipsoid(new Cartesian2(midX + 2, midY));
+        if (!leftPos || !rightPos) {
+            midX -= 1;
+        }
+    } while (!leftPos || !rightPos);
+    var lg = Cartographic.fromCartesian(leftPos);
+    var rg = Cartographic.fromCartesian(rightPos);
+    var lon1 = Math$1.toDegrees(lg.longitude);
+    var lat1 = Math$1.toDegrees(lg.latitude);
+    var lon2 = Math$1.toDegrees(rg.longitude);
+    var lat2 = Math$1.toDegrees(rg.latitude);
+    var distance = calculateDis(lon1, lat1, lon2, lat2);
+    return distance / 2;
+}
+/**
+ * 获取地图四至，最小和最大经纬度
+ */
+var viewExtend = function (viewer) {
+    var camera = viewer.camera, scene = viewer.scene;
+    var params = { minx: 0, maxx: 0, miny: 0, maxy: 0 };
+    var extend = camera.computeViewRectangle();
+    if (typeof extend === "undefined") {
+        //2D下会可能拾取不到坐标，extend返回undefined,因此作如下转换
+        var canvas = scene.canvas;
+        var upperLeft = new Cartesian2(0, 0); //canvas左上角坐标转2d坐标
+        var lowerRight = new Cartesian2(canvas.clientWidth, canvas.clientHeight); //canvas右下角坐标转2d坐标
+        var ellipsoid = scene.globe.ellipsoid;
+        var upperLeft3 = camera.pickEllipsoid(upperLeft, ellipsoid); //2D转3D世界坐标
+        var lowerRight3 = camera.pickEllipsoid(lowerRight, ellipsoid); //2D转3D世界坐标
+        var upperLeftCartographic = scene.globe.ellipsoid.cartesianToCartographic(upperLeft3); //3D世界坐标转弧度
+        var lowerRightCartographic = scene.globe.ellipsoid.cartesianToCartographic(lowerRight3); //3D世界坐标转弧度
+        var minx = Math$1.toDegrees(upperLeftCartographic.longitude); //弧度转经纬度
+        var maxx = Math$1.toDegrees(lowerRightCartographic.longitude); //弧度转经纬度
+        var miny = Math$1.toDegrees(lowerRightCartographic.latitude); //弧度转经纬度
+        var maxy = Math$1.toDegrees(upperLeftCartographic.latitude); //弧度转经纬度
+        params.minx = minx;
+        params.maxx = maxx;
+        params.miny = miny;
+        params.maxy = maxy;
+    }
+    else {
+        //3D获取方式
+        params.maxx = Math$1.toDegrees(extend.east);
+        params.maxy = Math$1.toDegrees(extend.north);
+        params.minx = Math$1.toDegrees(extend.west);
+        params.miny = Math$1.toDegrees(extend.south);
+    }
+    // 返回屏幕所在经纬度范围
+    return params;
+};
+/**
+ * 跳转到指定相机位置
+ * @param viewer - 地图场景
+ * @param {Cartesian3} position - 位置信息，笛卡尔坐标
+ * @param {H_P_R} hpr - 姿态信息
+ * @param {number} time - 跳转时间，单位秒
+ * @param {boolean} degree - 传参类型是否为度
+ * @param  callback - 回调函数
+ */
+var flyToPos = function (viewer, position, hpr, time, degree, callback) {
+    if (time === void 0) { time = 2; }
+    if (degree === void 0) { degree = false; }
+    var x = position.x, y = position.y, z = position.z;
+    var _a = hpr || DEF_HPR, heading = _a.heading, pitch = _a.pitch, roll = _a.roll;
+    var _pos = degree
+        ? Cartesian3.fromDegrees(x, y, z)
+        : position;
+    var _hpr = degree
+        ? {
+            heading: Math$1.toRadians(heading),
+            pitch: Math$1.toRadians(pitch),
+            roll: Math$1.toRadians(roll),
+        }
+        : hpr;
+    viewer.camera.flyTo({
+        destination: _pos,
+        orientation: _hpr,
+        duration: time,
+        complete: function () {
+            callback && typeof callback === "function" && callback();
+        },
+    });
+};
+/**
+ * 跳转到指定四至范围
+ * @param {*} viewer
+ * @param {*} extent [西,南,东,北]-单位经纬度
+ * @param {*} time
+ * @param {*} callback
+ */
+var flyToExtent = function (viewer, extent, time, callback) {
+    if (time === void 0) { time = 2; }
+    var ex = extentToRadians(extent);
+    var rectangle = new Rectangle(ex[0], ex[1], ex[2], ex[3]);
+    viewer.camera.flyTo({
+        destination: rectangle,
+        duration: time,
+        complete: function () {
+            callback && typeof callback === "function" && callback();
+        },
+    });
+};
+/**
+ * 跳转到指定对象
+ * @param viewer
+ * @param item
+ */
+function flyToItem(viewer, item) {
+    var type = layerType(item);
+    switch (type.toLowerCase()) {
+        case "entity":
+            flyToEntity(viewer, item);
+            break;
+        case "3dtiles":
+            flyTo3DTiles(viewer, item);
+            break;
+        case "primitive":
+            flyToPrimitive(viewer, item);
+            break;
+    }
+}
+/**
+ * 定位到指定对象
+ * @param viewer
+ * @param item
+ */
+function zoomToItem(viewer, item) {
+    var type = layerType(item);
+    switch (type.toLowerCase()) {
+        case "entity":
+            zoomToEntity(viewer, item);
+            break;
+        case "3dtiles":
+            zoomTo3DTiles(viewer, item);
+            break;
+    }
+}
+/**
+ * 跳转到指定的经纬度点
+ * @param viewer - 地图场景
+ * @param x - 经度
+ * @param y - 纬度
+ * @param z - 高度
+ * @param time - 跳转时间
+ * @param callback -回调
+ */
+function flyToDegree(viewer, x, y, z, time, callback) {
+    var position = Cartesian3.fromDegrees(x, y, z);
+    viewer.camera.flyTo({
+        destination: position,
+        duration: time,
+        complete: function () {
+            callback && typeof callback === "function" && callback();
+        },
+    });
 }
 
 /**
@@ -446,470 +1234,6 @@ var Terrain = /** @class */ (function () {
 }());
 
 /**
- * 移除指定entity
- * @param viewer - 地图场景
- * @param entity - 待移除对象
- */
-function removeEntity(viewer, entity) {
-    var children = entityChildren(entity);
-    children &&
-        children.forEach(function (ele) {
-            removeEntity(viewer, ele);
-        });
-    entity.PostRender && entity.PostRender();
-    entity.CustomDom && viewer.container.removeChild(entity.CustomDom);
-    viewer.entities.remove(entity);
-}
-/**
- * 获取entity的子对象
- * @param entity - entity对象
- * @returns - 子对象集合
- */
-function entityChildren(entity) {
-    return entity._children;
-}
-/**
- * 根据id获取entity
- * @param id
- */
-function getEntityById(viewer, id) {
-    return viewer.entities.getById(id);
-}
-
-/**
- * 移除指定primitive
- * @param viewer - 地图场景
- * @param primitive - 待移除primitive对象
- */
-function removePrimitive(viewer, primitive) {
-    primitive && viewer.scene.primitives.remove(primitive);
-}
-/**
- * 根据id获取指定primitive图层
- * @param viewer
- * @param id
- * @returns
- */
-var getPrimitiveById = function (viewer, id) {
-    var primitives = viewer.scene.primitives._primitives;
-    return primitives.find(function (layer) { return layer.id === id; });
-};
-
-/**
- * 移除影像图层
- * @param {Object} viewer 地图场景对象
- * @param layer 待移除图层
- */
-function removeImageryLayer(viewer, layer) {
-    layer && viewer.imageryLayers.remove(layer);
-}
-/**
- * 根据Id返回对应的Imagery（影像图层）
- * @param {Viewer} viewer
- * @param {string} id
- * @returns
- */
-function getImageryById(viewer, id) {
-    var imageryList = viewer.imageryLayers._layers;
-    return imageryList.find(function (imagery) { return imagery.id === id; });
-}
-
-/**
- * 加载3DTiles图层
- * @param {*} viewer
- * @param {*} url
- * @param {*} height
- * @returns
- */
-function load3Dtiles(viewer, url, height) {
-    return __awaiter(this, void 0, void 0, function () {
-        var model;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0: return [4 /*yield*/, Cesium3DTileset.fromUrl(url, DEF_3DTILES_OPTION)
-                    // 超出可视区的瓦片进行销毁，提高性能
-                ];
-                case 1:
-                    model = _a.sent();
-                    // 超出可视区的瓦片进行销毁，提高性能
-                    model.tileLoad.addEventListener(function (tile) {
-                        tile.tileset.trimLoadedTiles();
-                    });
-                    height && offsetHeight(model, height);
-                    model = viewer.scene.primitives.add(model);
-                    SetCusMark(model, "primitive", "3dtiles", true);
-                    return [2 /*return*/, model];
-            }
-        });
-    });
-}
-/**
- * 加载3DTIles图层至指定位置
- * @param {*} viewer
- * @param {*} url
- * @param {*} pos
- */
-function load3DtilesOnPos(viewer, url, pos) {
-    return __awaiter(this, void 0, void 0, function () {
-        var model;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0: return [4 /*yield*/, Cesium3DTileset.fromUrl(url, DEF_3DTILES_OPTION)];
-                case 1:
-                    model = _a.sent();
-                    model.tileLoad.addEventListener(function (tile) {
-                        tile.tileset.trimLoadedTiles();
-                    });
-                    pos && updatePos(model, pos);
-                    viewer.scene.primitives.add(model);
-                    SetCusMark(model, "primitive", "3dtiles", true);
-                    return [2 /*return*/, model];
-            }
-        });
-    });
-}
-/**
- * 调整3dtiles模型高度
- * @param model - 3dtiles模型
- * @param h - 调整后高度
- * @param lng - 调整后经度，WGS84坐标
- * @param lat - 调整后纬度，WGS84坐标
- */
-function updatePos(model, pos) {
-    var x = pos.x, y = pos.y, _a = pos.z, z = _a === void 0 ? 0 : _a;
-    //高度偏差，正数为向上偏，负数为向下偏，根据真实的模型位置不断进行调整
-    //计算tileset的绑定范围
-    var boundingSphere = model.boundingSphere;
-    //计算中心点位置
-    var cartographic = Cartographic.fromCartesian(boundingSphere.center);
-    var longitude = cartographic.longitude, latitude = cartographic.latitude, height = cartographic.height;
-    //计算中心点位置坐标
-    var surface = Cartesian3.fromRadians(longitude, latitude, 0);
-    var lng = x ? Math.toRadians(x) : longitude;
-    var lat = y ? Math.toRadians(y) : latitude;
-    //偏移后的三维坐标
-    var offset = Cartesian3.fromRadians(lng, lat, z - height);
-    var translation = Cartesian3.subtract(offset, surface, new Cartesian3());
-    //tileset.modelMatrix转换
-    model.modelMatrix = Matrix4.fromTranslation(translation);
-}
-function offsetHeight(model, height) {
-    //高度偏差，正数为向上偏，负数为向下偏，根据真实的模型位置不断进行调整
-    //计算tileset的绑定范围
-    var boundingSphere = model.boundingSphere;
-    //计算中心点位置
-    var cartographic = Cartographic.fromCartesian(boundingSphere.center);
-    var longitude = cartographic.longitude, latitude = cartographic.latitude;
-    //计算中心点位置坐标
-    var surface = Cartesian3.fromRadians(longitude, latitude, 0);
-    //偏移后的三维坐标
-    var offset = Cartesian3.fromRadians(longitude, latitude, height);
-    var translation = Cartesian3.subtract(offset, surface, new Cartesian3());
-    //tileset.modelMatrix转换
-    model.modelMatrix = Matrix4.fromTranslation(translation);
-}
-/**
- * 移除3dtiles图层
- * @param viewer - 地图场景
- * @param model - 待移除模型
- */
-var remove3Dtiles = function (viewer, model) {
-    model && viewer.scene.primitives.remove(model);
-};
-
-/**
- * 获取场景中所有的图层
- * @param viewer
- * @returns
- */
-function getAllLayers(viewer) {
-    //@ts-ignore
-    var entities = viewer.entities._entities._array;
-    //@ts-ignore
-    var imageryLayers = viewer.imageryLayers._layers;
-    //@ts-ignore
-    var primitives = viewer.scene.primitives._primitives;
-    //@ts-ignore
-    var dataSources = viewer.dataSources._dataSources;
-    return { entities: entities, imageryLayers: imageryLayers, primitives: primitives, dataSources: dataSources };
-}
-/**
- * 给图层打上自定义标记，便于删除
- * @param item - 待标记对象
- * @param type - 对象类型["imagerylayer","entity","primitive","particle"]
- * @param geo - 对象几何类型["WebMapTileServiceImageryProvider","Point","SpreadPoint","Polyline","Polygon","Circle","Radar","Model","fire","Billboard","panel"]
- * @param pick - 是否支持点选
- */
-function SetCusMark(item, type, geo, pick) {
-    if (pick === void 0) { pick = true; }
-    item.CustomType = type;
-    item.CustomGeo = geo;
-    item.AllowPick = pick;
-}
-/**
- * 返回图层类型
- * @param layer 图层对象
- * @returns 图层类型：Entity/Primitive/3DTiles/ImageryLayer
- */
-function layerType(layer) {
-    if (layer instanceof Entity)
-        return "Entity";
-    if (layer instanceof BillboardCollection ||
-        layer instanceof Primitive ||
-        layer instanceof GroundPrimitive ||
-        layer instanceof GroundPolylinePrimitive)
-        return "Primitive";
-    if (layer instanceof Cesium3DTileset)
-        return "3DTiles";
-    if (layer instanceof ImageryLayer)
-        return "ImageryLayer";
-    return layer.CustomType;
-}
-/**
- * 移除指定图层
- * @param viewer - 地图场景
- * @param layer - 待移除图层
- */
-function removeLayer(viewer, layer) {
-    var type = layerType(layer);
-    switch (type.toLowerCase()) {
-        case "entity":
-            removeEntity(viewer, layer);
-            break;
-        case "primitive":
-            removePrimitive(viewer, layer);
-            break;
-        case "3dtiles":
-            remove3Dtiles(viewer, layer);
-            break;
-        case "imagerylayer":
-            removeImageryLayer(viewer, layer);
-            break;
-    }
-}
-/**
- * 根据id获取图层
- * @param {*} viewer
- * @param {*} id
- * @returns
- */
-function getLayerById(viewer, id) {
-    var layer = getEntityById(viewer, id) ||
-        getPrimitiveById(viewer, id) ||
-        getImageryById(viewer, id);
-    return layer;
-}
-
-/**
- * 根据像素px值拾取位置点
- * @method
- * @description 位置：Coordinates.getCatesian3FromPX
- * @param {Viewer} viewer 地图场景
- * @param {Cartesian2} px 屏幕坐标
- * @returns {Cartesian3 | null} 位置点笛卡尔坐标
- */
-var getCatesian3FromPX = function (viewer, px) {
-    var scene = viewer.scene;
-    var picks = scene.drillPick(px);
-    var cartesian = undefined;
-    var isOn3dtiles = false;
-    for (var i in picks) {
-        var pick = picks[i];
-        var primitive = pick && pick.primitive;
-        if (primitive instanceof Cesium3DTileFeature ||
-            primitive instanceof Cesium3DTileset ||
-            primitive instanceof Model) {
-            isOn3dtiles = true;
-        }
-        if (isOn3dtiles) {
-            scene.pick(px);
-            cartesian = scene.pickPosition(px);
-            if (cartesian) {
-                var cartographic = Cartographic.fromCartesian(cartesian);
-                var x = Math.toDegrees(cartographic.longitude), y = Math.toDegrees(cartographic.latitude), z = cartographic.height;
-                cartesian = transformWGS84ToCartesian({ x: x, y: y, z: z });
-            }
-        }
-    }
-    var isOnTerrain = false; // 地形
-    var boolTerrain = viewer.terrainProvider instanceof EllipsoidTerrainProvider;
-    if (!isOn3dtiles && !boolTerrain) {
-        var ray = scene.camera.getPickRay(px);
-        if (!ray)
-            return null;
-        cartesian = scene.globe.pick(ray, scene);
-        isOnTerrain = true;
-    }
-    // 地球
-    if (!isOn3dtiles && !isOnTerrain && boolTerrain) {
-        cartesian = scene.camera.pickEllipsoid(px, scene.globe.ellipsoid);
-    }
-    if (cartesian) {
-        var position = transformCartesianToWGS84(cartesian);
-        if (position.z && position.z < 0) {
-            position.z = 0.01;
-            cartesian = transformWGS84ToCartesian(position);
-        }
-        return cartesian;
-    }
-    return null;
-};
-/**
- * WGS84坐标转笛卡尔坐标
- * @method
- * @description 位置：Coordinates.transformWGS84ToCartesian
- * @param {DegreePos} position WGS84坐标
- * @returns {Cartesian3} 笛卡尔坐标
- */
-var transformWGS84ToCartesian = function (position) {
-    var x = position.x, y = position.y, _a = position.z, z = _a === void 0 ? 0 : _a;
-    return position
-        ? Cartesian3.fromDegrees(x, y, z, Ellipsoid.WGS84)
-        : Cartesian3.ZERO;
-};
-/**
- * 笛卡尔坐标转WGS84
- * @method
- * @description 位置：Coordinates.transformCartesianToWGS84
- * @param {Cartesian3} cartesian3 笛卡尔坐标
- * @return {DegreePos} WGS84坐标
- */
-var transformCartesianToWGS84 = function (cartesian3) {
-    var cartographic = Ellipsoid.WGS84.cartesianToCartographic(cartesian3);
-    var longitude = cartographic.longitude, latitude = cartographic.latitude, height = cartographic.height;
-    return {
-        x: Math.toDegrees(longitude),
-        y: Math.toDegrees(latitude),
-        z: height,
-    };
-};
-/**
- * WGS84坐标转弧度坐标
- * @method
- * @description 位置：Coordinates.transformWGS84ToCartographic
- * @param {DegreePos} position WGS84坐标点
- * @return {Cesium.Cartographic} 弧度坐标点
- */
-function transformWGS84ToCartographic(position) {
-    return position
-        ? Cartographic.fromDegrees(position.x, position.y, position.z)
-        : Cartographic.ZERO;
-}
-/**
- * 弧度坐标转WGS84坐标
- * @method
- * @description 位置：Coordinates.transformCartographicToWGS84
- * @param {Cartographic} cartographic 弧度坐标
- * @returns {DegreePos} WGS84经纬度坐标
- */
-function transformCartographicToWGS84(cartographic) {
-    var longitude = cartographic.longitude, latitude = cartographic.latitude, height = cartographic.height;
-    return {
-        x: Math.toDegrees(longitude),
-        y: Math.toDegrees(latitude),
-        z: height,
-    };
-}
-/**
- * 获取经纬度点集高度(限地形)
- * @method
- * @description 位置：Coordinates.height4Degrees
- * @param {Cesium.TerrainProvider} terrain 当前场景地形对象
- * @param {Array<DegreePos>} points 经纬度坐标数组
- * @param {boolean} [car3Only=false] 是否仅返回笛卡尔坐标数组
- * @returns {Promise<T>} 异步返回：高度值数组
- */
-function height4Degrees(terrain_1, points_1) {
-    return __awaiter(this, arguments, void 0, function (terrain, points, car3Only) {
-        var cartographics, result;
-        if (car3Only === void 0) { car3Only = false; }
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    cartographics = points.map(function (point) {
-                        return Cartographic.fromDegrees(point.x, point.y);
-                    });
-                    return [4 /*yield*/, height4Cartographics(terrain, cartographics, car3Only)];
-                case 1:
-                    result = _a.sent();
-                    return [2 /*return*/, result];
-            }
-        });
-    });
-}
-/**
- * 获取笛卡尔点集高度(限地形)
- * @method
- * @description 位置：Coordinates.height4Positions
- * @param {Cesium.TerrainProvider} terrain 当前场景地形对象
- * @param {Array<Cartesian3>} points 笛卡尔坐标数组
- * @param {boolean} [car3Only=false] 是否仅返回笛卡尔坐标数组
- * @returns {Promise<T>} 异步返回：高度值数组
- */
-function height4Positions(terrain_1, points_1) {
-    return __awaiter(this, arguments, void 0, function (terrain, points, car3Only) {
-        var cartographics, result;
-        if (car3Only === void 0) { car3Only = false; }
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    cartographics = points.map(function (ele) { return Cartographic.fromCartesian(ele); });
-                    return [4 /*yield*/, height4Cartographics(terrain, cartographics, car3Only)];
-                case 1:
-                    result = _a.sent();
-                    return [2 /*return*/, result];
-            }
-        });
-    });
-}
-/**
- * 获取cartographics弧度点集高度(限地形)
- * @method
- * @description 位置：Coordinates.height4Cartographics
- * @param {Cesium.TerrainProvider} terrain 当前场景地形对象
- * @param {Array<Cartographic>} points 笛卡尔坐标数组
- * @param {boolean} [car3Only=false] 是否仅返回笛卡尔坐标数组
- * @returns {Promise<T>} 异步返回：高度值数组
- */
-function height4Cartographics(terrain_1, cartographics_1) {
-    return __awaiter(this, arguments, void 0, function (terrain, cartographics, car3Only) {
-        var updatedCartographics, result;
-        if (car3Only === void 0) { car3Only = false; }
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0: return [4 /*yield*/, sampleTerrainMostDetailed(terrain, cartographics)];
-                case 1:
-                    updatedCartographics = _a.sent();
-                    console.log(updatedCartographics);
-                    result = updatedCartographics.map(function (cartographic) {
-                        var cartesian3 = Cartographic.toCartesian(cartographic);
-                        return car3Only
-                            ? cartesian3
-                            : {
-                                degree: transformCartographicToWGS84(cartographic),
-                                cartesian3: cartesian3,
-                                cartographic: cartographic,
-                            };
-                    });
-                    return [2 /*return*/, result];
-            }
-        });
-    });
-}
-
-var Coordinate = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    getCatesian3FromPX: getCatesian3FromPX,
-    transformWGS84ToCartesian: transformWGS84ToCartesian,
-    transformCartesianToWGS84: transformCartesianToWGS84,
-    transformWGS84ToCartographic: transformWGS84ToCartographic,
-    transformCartographicToWGS84: transformCartographicToWGS84,
-    height4Degrees: height4Degrees,
-    height4Positions: height4Positions,
-    height4Cartographics: height4Cartographics
-});
-
-/**
  * 地图添加点数据-Primitive形式
  * @param viewer
  * @param positions
@@ -960,6 +1284,75 @@ function PointEntityAdd(viewer, positions, options) {
         SetCusMark(point, "entity", "point", option.allowPick);
     }
     return parent;
+}
+
+var waterImg = "data:image/png;base64,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";
+
+/*
+ * 通用方法
+ * @Author: jianlei wang
+ * @Date: 2025-04-23 09:42:04
+ * @Last Modified by: jianlei wang
+ * @Last Modified time: 2025-09-26 09:44:11
+ */
+/**
+ * 生成唯一id
+ * @returns 例：936e0deb-c208-4098-9959-327e519e63e2
+ */
+function randomId() {
+    var tempUrl = URL.createObjectURL(new Blob());
+    var uuid = tempUrl.toString();
+    URL.revokeObjectURL(tempUrl);
+    return uuid.substring(uuid.lastIndexOf("/") + 1);
+}
+/**
+ * 安全执行回调
+ */
+function safeCallback(callback, data) {
+    callback && typeof callback === "function" && callback(data);
+}
+
+function addWaters(viewer, options) {
+    var id = options.id, _a = options.img, img = _a === void 0 ? waterImg : _a, polygons = options.polygons, _b = options.ids, ids = _b === void 0 ? [] : _b;
+    var instances = [];
+    var allPositions = [];
+    for (var index = 0; index < polygons.length; index++) {
+        var positions = polygons[index];
+        var instance = new GeometryInstance({
+            id: ids[index] || randomId(),
+            geometry: new PolygonGeometry({
+                polygonHierarchy: new PolygonHierarchy(positions),
+                vertexFormat: EllipsoidSurfaceAppearance.VERTEX_FORMAT,
+            }),
+        });
+        instances.push(instance);
+        allPositions.push.apply(allPositions, positions);
+    }
+    var waterPrimitive = new GroundPrimitive({
+        allowPicking: true,
+        asynchronous: true,
+        geometryInstances: instances,
+        appearance: new EllipsoidSurfaceAppearance({
+            aboveGround: true,
+            material: new Material({
+                fabric: {
+                    type: "Water",
+                    uniforms: {
+                        blendColor: new Color(1, 0, 0, 0.3),
+                        normalMap: img,
+                        frequency: 200,
+                        animationSpeed: 0.01,
+                        amplitude: 10,
+                    },
+                },
+            }),
+        }),
+    });
+    waterPrimitive.id = id;
+    waterPrimitive.CusExtent = getExtent(allPositions, true);
+    SetCusMark(waterPrimitive, "primitive", "Water", true);
+    var primitive = viewer.scene.primitives.add(waterPrimitive);
+    return primitive;
 }
 
 var Add = /** @class */ (function () {
@@ -1027,6 +1420,10 @@ var Add = /** @class */ (function () {
     Add.prototype.addPointEntities = function (positions, options) {
         var pointEntity = PointEntityAdd(this.viewer, positions, options);
         return pointEntity;
+    };
+    Add.prototype.addWaters = function (options) {
+        var waterPrimitives = addWaters(this.viewer, options);
+        return waterPrimitives;
     };
     return Add;
 }());
@@ -1312,30 +1709,6 @@ var Layers = /** @class */ (function () {
     return Layers;
 }());
 
-/*
- * 通用方法
- * @Author: jianlei wang
- * @Date: 2025-04-23 09:42:04
- * @Last Modified by: jianlei wang
- * @Last Modified time: 2025-09-26 09:44:11
- */
-/**
- * 生成唯一id
- * @returns 例：936e0deb-c208-4098-9959-327e519e63e2
- */
-function randomId() {
-    var tempUrl = URL.createObjectURL(new Blob());
-    var uuid = tempUrl.toString();
-    URL.revokeObjectURL(tempUrl);
-    return uuid.substring(uuid.lastIndexOf("/") + 1);
-}
-/**
- * 安全执行回调
- */
-function safeCallback(callback, data) {
-    callback && typeof callback === "function" && callback(data);
-}
-
 /**
  * 开启全局拾取
  * @param viewer
@@ -1354,6 +1727,7 @@ function initPickGlobal(viewer, callback) {
                         return [2 /*return*/];
                     pick = viewer.scene.drillPick(e.position) // 获取 pick 拾取对象
                     ;
+                    console.log("SDK-点击：", pick);
                     // 优先拾取矢量
                     // 判断是否获取到了 pick 对象
                     if (defined(pick) && pick.length > 0) {
@@ -1406,6 +1780,224 @@ var Handler = /** @class */ (function () {
         this.viewer.EventHandler.clear();
     };
     return Handler;
+}());
+
+var AroundPoint = /** @class */ (function () {
+    /**
+     * 绕点旋转类
+     * @param {Object} viewer 地图场景对象
+     * @param {Cartesian3} position 目标点坐标，笛卡尔坐标
+     * @param {number} angle 观察角度，-90为垂直正视，建议值区间[-30,-40]
+     * @param {number} amount 旋转360度所需要时间，单位：秒(s)
+     * @param {number} distance 点距离相机距离，单位：米(m)
+     */
+    function AroundPoint(viewer, position, angle, amount, distance) {
+        this.viewer = viewer;
+        this._time = amount;
+        this._angle = angle;
+        this._position = position;
+        this._distance = distance;
+        this._startTime = JulianDate.fromDate(new Date());
+    }
+    AroundPoint.prototype._bindEvent = function () {
+        this.viewer.clock.onTick.addEventListener(this._rotate, this);
+    };
+    AroundPoint.prototype._unbindEvent = function () {
+        this.viewer.camera.lookAtTransform(Matrix4.IDENTITY);
+        this.viewer.clock.onTick.removeEventListener(this._rotate, this);
+    };
+    AroundPoint.prototype._rotate = function () {
+        var delTime = JulianDate.secondsDifference(this.viewer.clock.currentTime, this._startTime);
+        var angle = 360 / this._time;
+        var heading = Math$1.toRadians(delTime * angle);
+        this.viewer.scene.camera.setView({
+            destination: this._position, // 点的坐标
+            orientation: {
+                heading: heading,
+                pitch: Math$1.toRadians(this._angle),
+            },
+        });
+        this.viewer.scene.camera.moveBackward(this._distance);
+    };
+    /**
+     * 开始旋转
+     * @returns {AroundPoint} 绕点旋转对象
+     */
+    AroundPoint.prototype.start = function () {
+        this.viewer.clock.shouldAnimate = true;
+        this._unbindEvent();
+        this._bindEvent();
+        return this;
+    };
+    /**
+     * 停止旋转
+     * @returns {AroundPoint} 绕点旋转对象
+     */
+    AroundPoint.prototype.stop = function () {
+        this._unbindEvent();
+        return this;
+    };
+    /**
+     * 注销对象
+     */
+    AroundPoint.prototype.destroy = function () {
+        this._unbindEvent();
+    };
+    return AroundPoint;
+}());
+
+var Navigation = /** @class */ (function () {
+    /**
+     * 导航主类
+     * @param {Object} viewer 地图场景对象
+     */
+    function Navigation(viewer) {
+        this.viewer = viewer;
+        this._homeCamera = {
+            degrees: { x: 102.778637, y: 34.673852, z: 7104159.98 },
+            position: new Cartesian3(-2453733.1395831853, 10818816.243349865, 7649756.401418009),
+            hpr: { heading: 6.283185307179586, pitch: -1.5691401107287417, roll: 0 },
+        };
+    }
+    Object.defineProperty(Navigation.prototype, "homeCamera", {
+        /**
+         * 获取/设置初始视角
+         * @type {CameraStatus}
+         */
+        get: function () {
+            return this._homeCamera;
+        },
+        set: function (cameraStatus) {
+            this._homeCamera = clone(cameraStatus, true);
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Navigation.prototype, "cameraStatus", {
+        /**
+         * 当前相机状态
+         * @readonly
+         * @type {CameraStatus}
+         */
+        get: function () {
+            var _a = this.viewer.camera, position = _a.position, heading = _a.heading, pitch = _a.pitch, roll = _a.roll;
+            var degrees = transformCartesianToWGS84(position);
+            var hpr = { heading: heading, pitch: pitch, roll: roll };
+            return { degrees: degrees, position: position, hpr: hpr };
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Navigation.prototype, "scale", {
+        /**
+         * 获取比例尺，页面1px的距离，单位m
+         * @readonly
+         * @type {number}
+         *
+         */
+        get: function () {
+            return getScale(this.viewer);
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Navigation.prototype, "viewExtent", {
+        /**
+         * 获取地图四至，最小和最大经纬度
+         * @readonly
+         * @type {ViewExtent}
+         */
+        get: function () {
+            return viewExtend(this.viewer);
+        },
+        enumerable: false,
+        configurable: true
+    });
+    /**
+     * 跳转到初始视角，即homeCamera参数
+     * @param {number} [time=2.0] -（可选）跳转时间，以秒为单位，默认2秒
+     */
+    Navigation.prototype.homeView = function (time) {
+        this.flyToPos(this._homeCamera, time || 2);
+    };
+    /**
+     * 跳转到指定四至
+     * @param {Array<Number>} extent 四至范围，格式：[west,south,east,north],单位经纬度
+     * @param {Number} [time=2.0] 跳转时间，单位s，默认2秒
+     * @param {Function} [callback] 回调函数，可以在其中写入跳转完成后执行方法
+     */
+    Navigation.prototype.flyToExtent = function (extent, time, callback) {
+        flyToExtent(this.viewer, extent, time, callback);
+    };
+    /**
+     * 跳转到指定视角
+     * @param {ViewStatus} viewStatus 待跳转视角对象
+     * @param {Number} [time=2.0] 跳转时间，单位秒(s)，默认2秒
+     * @param {Boolean} [degree=false] 传参类型，欧拉角是否位经纬度。
+     * 若degree=false，则{@link ViewStatus}的position为笛卡尔坐标，欧拉角单位为弧度；
+     * 若degree=true，则{@link ViewStatus}的position为WGS84坐标，欧拉角单位为度
+     * @param {Function} [callback] 回调函数，可以在其中写入跳转完成后执行方法
+     */
+    Navigation.prototype.flyToPos = function (viewStatus, time, degree, callback) {
+        if (degree === void 0) { degree = false; }
+        var position = viewStatus.position, hpr = viewStatus.hpr;
+        var bool = typeof time === "number";
+        flyToPos(this.viewer, position, hpr, bool ? time : 2, degree, callback);
+    };
+    /**
+     * 定位到指定视角，仅限笛卡尔坐标和弧度参数
+     * @param {ViewStatus} viewStatus
+     */
+    Navigation.prototype.zoomToPos = function (viewStatus) {
+        this.flyToPos(viewStatus, 0);
+    };
+    /**
+     * 跳转到指定对象
+     * @param {Object} item - 待跳转对象，理论支持界面加载的所有对象
+     */
+    Navigation.prototype.flyToItem = function (item) {
+        flyToItem(this.viewer, item);
+    };
+    /**
+     * 定位到指定对象
+     * @param {Object} item - 待定位对象，理论支持界面加载的所有对象
+     */
+    Navigation.prototype.zoomToItem = function (item) {
+        zoomToItem(this.viewer, item);
+    };
+    /**
+     * 跳转到指定坐标
+     * @param {DegreePos} pos 待跳转坐标，WGS84坐标
+     * @param {number} [time=2.0] 跳转时间，默认2秒
+     * @param {Function} [callback] 回调函数，可以在其中写入跳转完成后执行方法
+     */
+    Navigation.prototype.flyToDegree = function (pos, time, callback) {
+        var x = pos.x, y = pos.y, _a = pos.z, z = _a === void 0 ? 0 : _a;
+        var bool = typeof time === "number";
+        flyToDegree(this.viewer, x, y, z, bool ? time : 2, callback);
+    };
+    /**
+     * 定位到指定坐标
+     * @param {DegreePos} pos 待跳转坐标，WGS84坐标
+     * @param {Function} [callback] 回调函数，可以在其中写入跳转完成后执行方法
+     */
+    Navigation.prototype.zoomToDegree = function (pos, callback) {
+        this.flyToDegree(pos, 0, callback);
+    };
+    /**
+     * 绕点旋转
+     * @param {DegreePos} pos - 位置点，WGS84坐标
+     * @param {number} angle 观察角度，-90为垂直正视，建议值区间[-30,-40]
+     * @param {number} amount 旋转360度所需要时间，单位：秒(s)
+     * @param {number} distance 点距离相机距离，单位：米(m)
+     * @returns {AroundPoint} 绕点旋转对象
+     */
+    Navigation.prototype.aroundPoint = function (pos, angle, time, distance) {
+        var x = pos.x, y = pos.y, z = pos.z;
+        var aroundPoint = new AroundPoint(this.viewer, Cartesian3.fromDegrees(x, y, z), angle, time, distance);
+        return aroundPoint;
+    };
+    return Navigation;
 }());
 
 // 设置默认相机观察范围（覆盖Cesium默认设置）
@@ -1462,6 +2054,11 @@ var Viewer = /** @class */ (function (_super) {
          * @type {Layers}
          */
         _this.Layers = new Layers(_this);
+        /**
+         * 导航主类
+         * @type {Navigation}
+         */
+        _this.Navigation = new Navigation(_this);
         _this.initBaseConfig();
         return _this;
     }
@@ -1759,5 +2356,9 @@ var PointGraphic = /** @class */ (function (_super) {
     return PointGraphic;
 }(PointGraphics));
 
-export { BaseLayer, Coordinate as Coordinates, EventNameMap, PointGraphic as PointGraphics, Viewer };
+var Screen = /*#__PURE__*/Object.freeze({
+    __proto__: null
+});
+
+export { BaseLayer, Coordinate as Coordinates, EventNameMap, PointGraphic as PointGraphics, Screen, Viewer };
 //# sourceMappingURL=larkexplorer.esm.js.map

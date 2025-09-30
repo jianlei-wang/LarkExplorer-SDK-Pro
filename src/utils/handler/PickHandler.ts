@@ -14,6 +14,7 @@ export function initPickGlobal(viewer: Viewer, callback?: Function) {
     const pos = getCatesian3FromPX(viewer, e.position)
     if (!defined(pos)) return
     let pick = viewer.scene.drillPick(e.position) // 获取 pick 拾取对象
+    console.log("SDK-点击：", pick)
     // 优先拾取矢量
     // 判断是否获取到了 pick 对象
     if (defined(pick) && pick.length > 0) {

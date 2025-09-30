@@ -72,28 +72,9 @@ export default [
         exclude: [],
       }),
       terser({
-        format: {
-          comments: false,
-        },
-        compress: {
-          drop_console: true,
-          drop_debugger: true,
-          passes: 3, // 多次优化
-          pure_funcs: ["console.log", "console.info", "console.warn"], // 移除这些函数
-          unsafe: true, // 启用更多不安全但更小的优化
-          unsafe_comps: true,
-          unsafe_math: true,
-          unsafe_proto: true,
-          unsafe_regexp: true,
-          unsafe_undefined: true,
-        },
-        mangle: {
-          toplevel: true, // 混淆顶层变量和函数名
-          properties: {
-            regex: /^_/, // 混淆以 _ 开头的属性名，可根据实际调整
-          },
-        },
-      }),
+        // format: { comments: false },
+        // compress: { drop_console: true },
+      }), // 压缩混淆
     ],
     external: (id) => /^(cesium)/.test(id),
   },

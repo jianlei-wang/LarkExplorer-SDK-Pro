@@ -75,6 +75,23 @@ export const getCatesian3FromPX = (viewer: Viewer, px: Cartesian2) => {
 }
 
 /**
+ * 经纬度坐标数组转笛卡尔坐标数组
+ * @method
+ * @description 位置：Coordinates.PosFromDegreeArray
+ * @param {Array<Number[]>} positions 经纬度坐标数组，如：[[120,34],[121,35]]
+ * @returns {Array<Cartesian3>} 笛卡尔坐标数组
+ */
+export function PosFromDegreeArray(positions: Array<number[]>) {
+  let result = []
+  for (let index = 0; index < positions.length; index++) {
+    const pos = positions[index]
+    result.push(pos[0], pos[1])
+  }
+  const points = Cartesian3.fromDegreesArray(result)
+  return points
+}
+
+/**
  * WGS84坐标转笛卡尔坐标
  * @method
  * @description 位置：Coordinates.transformWGS84ToCartesian
@@ -105,6 +122,17 @@ export const transformCartesianToWGS84 = (
     y: CesiumMath.toDegrees(latitude),
     z: height,
   }
+}
+
+/**
+ * 笛卡尔坐标点集合转WGS84点集合
+ * @method
+ * @description 位置：Coordinates.arrayCartesiansToWGS84
+ * @param {Array<Cartesian3>} cartesians 笛卡尔坐标点集合
+ * @returns {Array<DegreePos>} WGS84坐标点集合
+ */
+export function arrayCartesiansToWGS84(cartesians: Cartesian3[] = []) {
+  return cartesians.map((item) => transformCartesianToWGS84(item))
 }
 
 /**
@@ -210,4 +238,92 @@ export async function height4Cartographics(
         }
   })
   return result
+}
+
+/**
+ * 返回点集的范围，默认弧度：[west, south, east, north]
+ * @method
+ * @description 位置：Coordinates.getExtent
+ * @param {Array<Cartesian3>} points 点集，笛卡尔坐标
+ * @param {Boolean} degrees 是否返回值为经纬度，true-返回值为经纬度值；false-返回值为弧度值
+ * @returns {Array<Number>} 四至范围 => [west, south, east, north]
+ */
+export function getExtent(points: Cartesian3[], degrees: boolean) {
+  let west = 100000000,
+    south = 100000000,
+    east = -100000000,
+    north = -100000000
+  for (let i = 0; i < points.length; i++) {
+    const cartographic = Cartographic.fromCartesian(points[i])
+    const { longitude, latitude } = cartographic
+    west = Math.min(longitude, west)
+    south = Math.min(latitude, south)
+    east = Math.max(longitude, east)
+    north = Math.max(latitude, north)
+  }
+  if (degrees) {
+    west = CesiumMath.toDegrees(west)
+    south = CesiumMath.toDegrees(south)
+    east = CesiumMath.toDegrees(east)
+    north = CesiumMath.toDegrees(north)
+  }
+
+  return [west, south, east, north]
+}
+
+/**
+ * 计算空间两点间距离（经纬度坐标）
+ * @param {number} lon1 - 第1个点经度
+ * @param {number} lat1 - 第1个点纬度
+ * @param {number} lon2 - 第2个点经度
+ * @param {number} lat2 - 第2个点维度
+ * @returns 距离：米
+ */
+export function calculateDis(
+  lon1: number,
+  lat1: number,
+  lon2: number,
+  lat2: number
+) {
+  const R = 6371000 // 地球半径，单位米
+  const radLat1 = (Math.PI / 180) * lat1
+  const radLon1 = (Math.PI / 180) * lon1
+  const radLat2 = (Math.PI / 180) * lat2
+  const radLon2 = (Math.PI / 180) * lon2
+  // 计算经纬度差值
+  const deltaLat = radLat2 - radLat1
+  const deltaLon = radLon2 - radLon1
+  // 使用 Haversine 公式计算距离
+  const a =
+    Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+    Math.cos(radLat1) *
+      Math.cos(radLat2) *
+      Math.sin(deltaLon / 2) *
+      Math.sin(deltaLon / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+
+  // 计算距离并返回
+  const distance = R * c
+  return distance
+}
+
+/**
+ * 经纬度四至转弧度四至
+ * @method
+ * @param {Array<Number>} extent 经纬度四至，如：[112,23,120,30]
+ * @returns {Array<Number>}  转换后的弧度四至
+ */
+export function extentToRadians(extent: number[]) {
+  return extent.map((val) => degreesToRadians(val))
+}
+
+/**
+ * 角度转弧度
+ * @method
+ * @param {Number} degrees 角度值
+ * @returns {Number} 弧度值
+ */
+export function degreesToRadians(degrees: number) {
+  const radians = CesiumMath.toRadians(degrees)
+  return radians
 }

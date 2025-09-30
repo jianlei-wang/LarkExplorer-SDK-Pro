@@ -19,3 +19,8 @@ export declare const DEF_3DTILES_OPTION: {
     dynamicScreenSpaceErrorFactor: number;
     dynamicScreenSpaceError: boolean;
 };
+export declare const DEF_HPR: {
+    heading: number;
+    pitch: number;
+    roll: number;
+};

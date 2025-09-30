@@ -6,6 +6,7 @@ import {
   PointPrimitiveAdd,
 } from "src/utils/create-add/PointAdd"
 import { PointOption } from "../graphics/PointGraphics"
+import { addWaters, WaterOptions } from "src/utils/create-add/WaterAdd"
 
 export class Add {
   /**
@@ -62,5 +63,10 @@ export class Add {
   addPointEntities(positions: Cartesian3[], options: PointOption[]) {
     const pointEntity = PointEntityAdd(this.viewer, positions, options)
     return pointEntity
+  }
+
+  addWaters(options: WaterOptions) {
+    const waterPrimitives = addWaters(this.viewer, options)
+    return waterPrimitives
   }
 }

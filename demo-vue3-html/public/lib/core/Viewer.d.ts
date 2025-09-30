@@ -3,6 +3,7 @@ import EventEmitter from "./EventEmitter";
 import Terrain from "./Terrain";
 import Layers from "./Layers";
 import Handler from "./Handler";
+import Navigation from "./Navigation";
 /**
  * 地图场景配置扩展接口
  * @interface
@@ -53,6 +54,11 @@ declare class Viewer extends Cesium.Viewer {
      * @type {Layers}
      */
     Layers: Layers;
+    /**
+     * 导航主类
+     * @type {Navigation}
+     */
+    Navigation: Navigation;
     /**
      * 初始化基础场景配置
      * @private

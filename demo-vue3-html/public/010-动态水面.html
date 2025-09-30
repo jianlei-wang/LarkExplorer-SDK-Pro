@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>010-动态水面</title>
+    <script src="./Cesium/Cesium.js"></script>
+    <link rel="stylesheet" href="./Cesium/Widgets/widgets.css" />
+    <script src="./lib/larkexplorer.umd.min.js"></script>
+    <script src="./dat.gui.min.js"></script>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+      }
+      #cesiumContainer {
+        width: 100%;
+        height: 100%;
+        position: relative;
+      }
+      #gui-box {
+        position: absolute;
+        left: 5px;
+        top: 5px;
+        z-index: 99;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="cesiumContainer">
+      <div id="gui-box"></div>
+    </div>
+    <script>
+      const { DefaultTdtImg } = LarkExplorer.BaseLayer
+      const viewer = new LarkExplorer.Viewer("cesiumContainer", {
+        baseLayer: DefaultTdtImg,
+        fpsShow: true,
+        mapboxController: true,
+      })
+      viewer.lightShadow = false
+
+      const points = [
+        [76.14218009789242, 42.47698508817907],
+        [76.70454726525776, 42.598342385308676],
+        [77.29119520576982, 42.70782258094974],
+        [78.14187008253228, 42.75707076492938],
+        [78.07411702478595, 42.55673693892645],
+        [77.55974355740439, 42.19113866362949],
+        [76.88938636618754, 42.22153022246854],
+        [76.28469847787548, 42.342520039313875],
+        [76.1348966035066, 42.42671561240631],
+      ]
+      const points1 = [
+        [73.64218009789242, 40.97698508817907],
+        [74.20454726525776, 41.098342385308676],
+        [74.79119520576982, 41.20782258094974],
+        [75.64187008253228, 41.25707076492938],
+        [75.57411702478595, 41.05673693892645],
+        [75.05974355740439, 40.69113866362949],
+        [74.38938636618754, 40.72153022246854],
+        [73.78469847787548, 40.842520039313875],
+        [73.6348966035066, 40.92671561240631],
+      ]
+      let waterPrimitive
+      function showWater() {
+        const positions = LarkExplorer.Coordinates.PosFromDegreeArray(points)
+        const positions1 = LarkExplorer.Coordinates.PosFromDegreeArray(points1)
+        waterPrimitive = viewer.Layers.Add.addWaters({
+          id: "water-primitive",
+          polygons: [positions, positions1],
+          ids: ["water1", "water2"],
+        })
+        viewer.Navigation.flyToItem(waterPrimitive)
+      }
+      function hideWater() {
+        waterPrimitive && viewer.Layers.remove(waterPrimitive)
+      }
+
+      initGui()
+      function initGui() {
+        const params = {
+          message: "GUI面板-动态水面",
+          显示水面: false,
+        }
+        const gui = new dat.GUI({ autoPlace: false })
+        const customContainer = document.getElementById("gui-box")
+        customContainer.appendChild(gui.domElement)
+        gui.add(params, "message")
+        const boolFlat = gui.add(params, "显示水面")
+        boolFlat.onFinishChange((bool) => {
+          bool ? showWater() : hideWater()
+        })
+      }
+    </script>
+  </body>
+</html>

@@ -60,21 +60,14 @@
 
       let flat
       function startFlat() {
-        console.log(model)
-        flat = new viewer.Layers.TilesModel.Flatten(model, {
-          height: -50,
-        })
-        console.log(flat)
-        flat.addRegion({
-          positions: positions, // 压平区域的顶点坐标数组
-          id: new Date().getTime(), // 唯一标识符，使用当前时间戳
-        })
+        flat = new viewer.Layers.TilesModel.Flatten(model, { height: -50 })
+        flat.addRegion({ positions: positions, id: new Date().getTime() })
       }
       function endFlat() {
         flat && flat.destroy()
       }
-      initGui()
 
+      initGui()
       function initGui() {
         const params = {
           message: "GUI面板-3DTiles模型压平",

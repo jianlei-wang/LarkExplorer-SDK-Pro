@@ -102,6 +102,24 @@ export function offsetHeight(model: Cesium3DTileset, height: number) {
  * @param viewer - 地图场景
  * @param model - 待移除模型
  */
-export const remove3Dtiles = (viewer: Viewer, model: Cesium3DTileset) => {
+export function remove3Dtiles(viewer: Viewer, model: Cesium3DTileset) {
   model && viewer.scene.primitives.remove(model)
+}
+
+/**
+ * 跳转到3dtiles对象
+ * @param viewer
+ * @param item
+ */
+export function flyTo3DTiles(viewer: Viewer, item: Cesium3DTileset) {
+  item && viewer.flyTo(item)
+}
+
+/**
+ * 定位到3dtiles对象
+ * @param viewer
+ * @param item
+ */
+export function zoomTo3DTiles(viewer: Viewer, item: Cesium3DTileset) {
+  item && viewer.zoomTo(item)
 }

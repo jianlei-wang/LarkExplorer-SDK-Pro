@@ -1,4 +1,5 @@
 import { EventNameMap } from "src/utils/DefineObject"
+import { Cartesian3 } from "./CesiumTypes"
 
 /**
  * 事件回调列表类型（事件类型到回调函数数组的映射）
@@ -35,4 +36,39 @@ export interface DegreePos {
 export interface WindowPos {
   x: number
   y: number
+}
+
+/**
+ * 欧拉角
+ * @property {Number} heading - 偏航角，绕Z周
+ * @property {Number} pitch - 俯仰角，绕Y轴
+ * @property {Number} roll - 滚动角，绕X轴
+ */
+export interface H_P_R {
+  heading: number
+  pitch: number
+  roll: number
+}
+
+/**
+ * 相机状态参数
+ * @property {DegreePos} degrees - WGS84坐标值
+ * @property {Cartesian3} position - 笛卡尔坐标值
+ * @property {H_P_R} hpr - 欧拉角
+ */
+export interface CameraStatus {
+  degrees: DegreePos
+  position: Cartesian3
+  hpr: H_P_R
+}
+
+/**
+ * 视角参数
+ * @typedef ViewStatus
+ * @property {Cartesian3 | DegreePos} position - 笛卡尔Or经纬度 坐标值
+ * @property {H_P_R} hpr - 欧拉角
+ */
+export interface ViewStatus {
+  position: Cartesian3 | DegreePos
+  hpr: H_P_R
 }

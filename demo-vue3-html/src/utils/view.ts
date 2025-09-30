@@ -31,7 +31,18 @@ const treeDatas = [
   {
     id: "地图图层",
     label: "地图图层",
-    children: [{ id: "007", label: "添加点" }],
+    children: [
+      { id: "007", label: "添加点" },
+      { id: "008", label: "加载3DTiles" },
+    ],
+  },
+  {
+    id: "3DTiles",
+    label: "3DTiles",
+    children: [
+      { id: "008", label: "加载3DTiles" },
+      { id: "009", label: "3DTiles模型压平" },
+    ],
   },
 ]
 
