@@ -538,6 +538,109 @@
     }
 
     /**
+     * 加载3DTiles图层
+     * @param {*} viewer
+     * @param {*} url
+     * @param {*} height
+     * @returns
+     */
+    function load3Dtiles(viewer, url, height) {
+        return __awaiter(this, void 0, void 0, function () {
+            var model;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, Cesium.Cesium3DTileset.fromUrl(url, DEF_3DTILES_OPTION)
+                        // 超出可视区的瓦片进行销毁，提高性能
+                    ];
+                    case 1:
+                        model = _a.sent();
+                        // 超出可视区的瓦片进行销毁，提高性能
+                        model.tileLoad.addEventListener(function (tile) {
+                            tile.tileset.trimLoadedTiles();
+                        });
+                        height && offsetHeight(model, height);
+                        model = viewer.scene.primitives.add(model);
+                        SetCusMark(model, "primitive", "3dtiles", true);
+                        return [2 /*return*/, model];
+                }
+            });
+        });
+    }
+    /**
+     * 加载3DTIles图层至指定位置
+     * @param {*} viewer
+     * @param {*} url
+     * @param {*} pos
+     */
+    function load3DtilesOnPos(viewer, url, pos) {
+        return __awaiter(this, void 0, void 0, function () {
+            var model;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, Cesium.Cesium3DTileset.fromUrl(url, DEF_3DTILES_OPTION)];
+                    case 1:
+                        model = _a.sent();
+                        model.tileLoad.addEventListener(function (tile) {
+                            tile.tileset.trimLoadedTiles();
+                        });
+                        pos && updatePos(model, pos);
+                        viewer.scene.primitives.add(model);
+                        SetCusMark(model, "primitive", "3dtiles", true);
+                        return [2 /*return*/, model];
+                }
+            });
+        });
+    }
+    /**
+     * 调整3dtiles模型高度
+     * @param model - 3dtiles模型
+     * @param h - 调整后高度
+     * @param lng - 调整后经度，WGS84坐标
+     * @param lat - 调整后纬度，WGS84坐标
+     */
+    function updatePos(model, pos) {
+        var x = pos.x, y = pos.y, _a = pos.z, z = _a === void 0 ? 0 : _a;
+        //高度偏差，正数为向上偏，负数为向下偏，根据真实的模型位置不断进行调整
+        //计算tileset的绑定范围
+        var boundingSphere = model.boundingSphere;
+        //计算中心点位置
+        var cartographic = Cesium.Cartographic.fromCartesian(boundingSphere.center);
+        var longitude = cartographic.longitude, latitude = cartographic.latitude, height = cartographic.height;
+        //计算中心点位置坐标
+        var surface = Cesium.Cartesian3.fromRadians(longitude, latitude, 0);
+        var lng = x ? Cesium.Math.toRadians(x) : longitude;
+        var lat = y ? Cesium.Math.toRadians(y) : latitude;
+        //偏移后的三维坐标
+        var offset = Cesium.Cartesian3.fromRadians(lng, lat, z - height);
+        var translation = Cesium.Cartesian3.subtract(offset, surface, new Cesium.Cartesian3());
+        //tileset.modelMatrix转换
+        model.modelMatrix = Cesium.Matrix4.fromTranslation(translation);
+    }
+    function offsetHeight(model, height) {
+        //高度偏差，正数为向上偏，负数为向下偏，根据真实的模型位置不断进行调整
+        //计算tileset的绑定范围
+        var boundingSphere = model.boundingSphere;
+        //计算中心点位置
+        var cartographic = Cesium.Cartographic.fromCartesian(boundingSphere.center);
+        var longitude = cartographic.longitude, latitude = cartographic.latitude;
+        //计算中心点位置坐标
+        var surface = Cesium.Cartesian3.fromRadians(longitude, latitude, 0);
+        //偏移后的三维坐标
+        var offset = Cesium.Cartesian3.fromRadians(longitude, latitude, height);
+        var translation = Cesium.Cartesian3.subtract(offset, surface, new Cesium.Cartesian3());
+        //tileset.modelMatrix转换
+        model.modelMatrix = Cesium.Matrix4.fromTranslation(translation);
+    }
+    /**
+     * 移除3dtiles图层
+     * @param viewer - 地图场景
+     * @param model - 待移除模型
+     */
+    var remove3Dtiles = function (viewer, model) {
+        model && viewer.scene.primitives.remove(model);
+    };
+
+    /**
      * 获取场景中所有的图层
      * @param viewer
      * @returns
@@ -600,7 +703,7 @@
                 removePrimitive(viewer, layer);
                 break;
             case "3dtiles":
-                // remove3Dtiles(viewer, layer)
+                remove3Dtiles(viewer, layer);
                 break;
             case "imagerylayer":
                 removeImageryLayer(viewer, layer);
@@ -952,101 +1055,166 @@
     }());
 
     /**
-     * 加载3DTiles图层
-     * @param {*} viewer
-     * @param {*} url
-     * @param {*} height
-     * @returns
+     * 3DTiles模型压平处理类
+     * 通过自定义着色器实现对指定区域内模型的高度压平效果
      */
-    function load3Dtiles(viewer, url, height) {
-        return __awaiter(this, void 0, void 0, function () {
-            var model;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        console.log(url);
-                        return [4 /*yield*/, Cesium.Cesium3DTileset.fromUrl(url, DEF_3DTILES_OPTION)
-                            // 超出可视区的瓦片进行销毁，提高性能
-                        ];
-                    case 1:
-                        model = _a.sent();
-                        // 超出可视区的瓦片进行销毁，提高性能
-                        model.tileLoad.addEventListener(function (tile) {
-                            tile.tileset.trimLoadedTiles();
-                        });
-                        height && offsetHeight(model, height);
-                        viewer.scene.primitives.add(model);
-                        SetCusMark(model, "primitive", "3dtiles", true);
-                        return [2 /*return*/, model];
-                }
+    var Flatten = /** @class */ (function () {
+        /**
+         * 创建3DTiles模型压平实例
+         * @param {Cesium3DTileset} tileset - 需要进行压平操作的三维模型对象
+         * @param {FlatOption} [option={}] - 压平参数配置
+         * @throws {Error} 当模型对象无效时抛出异常
+         */
+        function Flatten(tileset, option) {
+            if (option === void 0) { option = {}; }
+            this.tileset = tileset;
+            /**
+             * 数组去重方法
+             * @param {number[]} arr - 需要去重的数组
+             * @returns {number[]} 去重后的数组
+             */
+            this.getUniqueArray = function (arr) {
+                return arr.filter(function (item, index, arr) { return arr.indexOf(item, 0) === index; });
+            };
+            // 初始化压平区域列表
+            this._regionList = [];
+            // 初始化局部坐标数组
+            this._localPositionsArr = [];
+            // 设置压平高度，默认为0
+            this._flatHeight = option.height || 0;
+            // 验证模型对象有效性
+            if (!tileset) {
+                throw new Error("3DTiles模型异常，未检索到进行压平操作的模型对象");
+            }
+            // 计算模型中心点和坐标变换矩阵
+            this._center = tileset.boundingSphere.center.clone();
+            this._matrix = Cesium.Transforms.eastNorthUpToFixedFrame(this._center.clone());
+            this._localMatrix = Cesium.Matrix4.inverse(this._matrix, new Cesium.Matrix4());
+        }
+        /**
+         * 添加压平区域
+         * @param {FlatRegionOption} region - 压平区域配置参数
+         */
+        Flatten.prototype.addRegion = function (region) {
+            this._regionList.push(region);
+            this.calculateStr();
+        };
+        /**
+         * 根据ID移除压平区域
+         * @param {string} id - 要移除的压平区域唯一标识符
+         */
+        Flatten.prototype.removeRegionById = function (id) {
+            if (!id)
+                return;
+            this._regionList = this._regionList.filter(function (region) { return region.id != id; });
+            this._localPositionsArr = [];
+            this.calculateStr();
+        };
+        /**
+         * 计算并更新压平着色器字符串
+         * 将压平区域坐标转换为局部坐标并生成对应的着色器代码
+         */
+        Flatten.prototype.calculateStr = function () {
+            // 遍历所有压平区域，将世界坐标转换为模型局部坐标
+            for (var i = 0; i < this._regionList.length; i++) {
+                var positions = this._regionList[i].positions;
+                var localCoord = this.car3ToLocal(positions);
+                this._localPositionsArr.push(localCoord);
+            }
+            // 生成点在多边形内的判断函数字符串
+            var funStr = this.strInPolygonFun(this._localPositionsArr);
+            var str = "";
+            var _loop_1 = function (i) {
+                var coors = this_1._localPositionsArr[i];
+                var n = coors.length;
+                var instr = "";
+                // 将多边形顶点坐标赋值给着色器变量
+                coors.forEach(function (coordinate, index) {
+                    instr += "points_".concat(n, "[").concat(index, "] = vec2(").concat(coordinate[0], ", ").concat(coordinate[1], ");\n");
+                });
+                // 生成压平处理逻辑：如果点在多边形内，则应用压平变换
+                str += "\n              ".concat(instr, "\n              if(isPointInPolygon_").concat(n, "(position2D)){\n                // \u521B\u5EFA\u538B\u5E73\u540E\u7684\u5C40\u90E8\u5750\u6807\n                vec4 tileset_local_position_transformed = vec4(tileset_local_position.x, tileset_local_position.y, ground_z, 1.0);\n                // \u8F6C\u6362\u56DE\u6A21\u578B\u5750\u6807\u7CFB\n                vec4 model_local_position_transformed = czm_inverseModel * u_tileset_localToWorldMatrix * tileset_local_position_transformed;\n                // \u66F4\u65B0\u9876\u70B9\u5750\u6807\n                vsOutput.positionMC.xy = model_local_position_transformed.xy;\n                vsOutput.positionMC.z = model_local_position_transformed.z + modelMC.z*0.0001;\n                return;\n              }\n            ");
+            };
+            var this_1 = this;
+            // 为每个压平区域生成对应的着色器判断逻辑
+            for (var i = 0; i < this._localPositionsArr.length; i++) {
+                _loop_1(i);
+            }
+            // 更新自定义着色器
+            this.updateShader(funStr, str);
+        };
+        /**
+         * 销毁压平效果，恢复模型原始状态
+         */
+        Flatten.prototype.destroy = function () {
+            this.tileset.customShader = undefined;
+        };
+        /**
+         * 生成点在多边形内判断函数的GLSL代码
+         * 根据多边形顶点数量生成对应的判断函数
+         * @param {Array<number[][]>} polygons - 多边形顶点坐标数组
+         * @returns {string} 生成的GLSL函数字符串
+         */
+        Flatten.prototype.strInPolygonFun = function (polygons) {
+            // 获取所有多边形的顶点数量
+            var pMap = polygons.map(function (polygon) { return polygon.length; });
+            // 去重，避免生成重复的函数
+            var uniqueArray = this.getUniqueArray(pMap);
+            var str = "";
+            // 为每种顶点数量的多边形生成对应的判断函数
+            uniqueArray.forEach(function (length) {
+                str += "\n              // \u5B9A\u4E49\u591A\u8FB9\u5F62\u9876\u70B9\u6570\u7EC4\n              vec2 points_".concat(length, "[").concat(length, "];\n              // \u5224\u65AD\u70B9\u662F\u5426\u5728\u591A\u8FB9\u5F62\u5185\u7684\u51FD\u6570\n              bool isPointInPolygon_").concat(length, "(vec2 point){\n                int nCross = 0; // \u4EA4\u70B9\u6570\n                const int n = ").concat(length, "; \n                // \u904D\u5386\u591A\u8FB9\u5F62\u7684\u6BCF\u6761\u8FB9\n                for(int i = 0; i < n; i++){\n                  vec2 p1 = points_").concat(length, "[i];\n                  vec2 p2 = points_").concat(length, "[int(mod(float(i+1),float(n)))];\n                  // \u8DF3\u8FC7\u6C34\u5E73\u8FB9\n                  if(p1[1] == p2[1]){ continue; }\n                  // \u68C0\u67E5\u70B9\u662F\u5426\u5728\u8FB9\u7684y\u8303\u56F4\u4E4B\u5916\n                  if(point[1] < min(p1[1], p2[1])){ continue; }\n                  if(point[1] >= max(p1[1], p2[1])){ continue; }\n                  // \u8BA1\u7B97\u5C04\u7EBF\u4E0E\u8FB9\u7684\u4EA4\u70B9x\u5750\u6807\n                  float x = p1[0] + ((point[1] - p1[1]) * (p2[0] - p1[0])) / (p2[1] - p1[1]);\n                  // \u5982\u679C\u4EA4\u70B9\u5728\u6D4B\u8BD5\u70B9\u53F3\u4FA7\uFF0C\u589E\u52A0\u4EA4\u70B9\u6570\n                  if(x > point[0]){ nCross++; }\n                }\n                // \u6839\u636E\u4EA4\u70B9\u6570\u7684\u5947\u5076\u6027\u5224\u65AD\u70B9\u662F\u5426\u5728\u591A\u8FB9\u5F62\u5185\n                return int(mod(float(nCross), float(2))) == 1;\n              }\n            ");
             });
-        });
-    }
-    /**
-     * 加载3DTIles图层至指定位置
-     * @param {*} viewer
-     * @param {*} url
-     * @param {*} pos
-     */
-    function load3DtilesOnPos(viewer, url, pos) {
-        return __awaiter(this, void 0, void 0, function () {
-            var model;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0: return [4 /*yield*/, Cesium.Cesium3DTileset.fromUrl(url, DEF_3DTILES_OPTION)];
-                    case 1:
-                        model = _a.sent();
-                        model.tileLoad.addEventListener(function (tile) {
-                            tile.tileset.trimLoadedTiles();
-                        });
-                        pos && updatePos(model, pos);
-                        viewer.scene.primitives.add(model);
-                        SetCusMark(model, "primitive", "3dtiles", true);
-                        return [2 /*return*/, model];
-                }
+            return str;
+        };
+        /**
+         * 更新自定义着色器
+         * @param {string} vtx1 - 点在多边形内判断函数字符串
+         * @param {string} vtx2 - 压平处理逻辑字符串
+         */
+        Flatten.prototype.updateShader = function (vtx1, vtx2) {
+            // 创建自定义着色器
+            var flatCustomShader = new Cesium.CustomShader({
+                uniforms: {
+                    // 模型局部到世界的变换矩阵
+                    u_tileset_localToWorldMatrix: {
+                        type: Cesium.UniformType.MAT4,
+                        value: this._matrix,
+                    },
+                    // 世界到模型局部的变换矩阵
+                    u_tileset_worldToLocalMatrix: {
+                        type: Cesium.UniformType.MAT4,
+                        value: this._localMatrix,
+                    },
+                    // 压平高度值
+                    u_flatHeight: {
+                        type: Cesium.UniformType.FLOAT,
+                        value: this._flatHeight,
+                    },
+                },
+                vertexShaderText: "\n            // \u5305\u542B\u6240\u6709\u70B9\u5728\u591A\u8FB9\u5F62\u5185\u7684\u5224\u65AD\u51FD\u6570\n            ".concat(vtx1, "\n            void vertexMain(VertexInput vsInput, inout czm_modelVertexOutput vsOutput){\n              // \u83B7\u53D6\u6A21\u578B\u9876\u70B9\u5750\u6807\n              vec3 modelMC = vsInput.attributes.positionMC;\n              vec4 model_local_position = vec4(modelMC.x, modelMC.y, modelMC.z, 1.0);\n              // \u8F6C\u6362\u5230\u6A21\u578B\u5C40\u90E8\u5750\u6807\u7CFB\n              vec4 tileset_local_position = u_tileset_worldToLocalMatrix * czm_model * model_local_position;\n              vec2 position2D = vec2(tileset_local_position.x,tileset_local_position.y);\n              // \u8BA1\u7B97\u538B\u5E73\u540E\u7684\u57FA\u51C6\u9AD8\u5EA6\n              float ground_z = 0.0 + u_flatHeight;\n              // \u5E94\u7528\u591A\u4E2A\u591A\u8FB9\u5F62\u533A\u57DF\u7684\u538B\u5E73\u5904\u7406\n              ").concat(vtx2, "\n            }"),
             });
-        });
-    }
-    /**
-     * 调整3dtiles模型高度
-     * @param model - 3dtiles模型
-     * @param h - 调整后高度
-     * @param lng - 调整后经度，WGS84坐标
-     * @param lat - 调整后纬度，WGS84坐标
-     */
-    function updatePos(model, pos) {
-        var x = pos.x, y = pos.y, _a = pos.z, z = _a === void 0 ? 0 : _a;
-        //高度偏差，正数为向上偏，负数为向下偏，根据真实的模型位置不断进行调整
-        //计算tileset的绑定范围
-        var boundingSphere = model.boundingSphere;
-        //计算中心点位置
-        var cartographic = Cesium.Cartographic.fromCartesian(boundingSphere.center);
-        var longitude = cartographic.longitude, latitude = cartographic.latitude, height = cartographic.height;
-        //计算中心点位置坐标
-        var surface = Cesium.Cartesian3.fromRadians(longitude, latitude, 0);
-        var lng = x ? Cesium.Math.toRadians(x) : longitude;
-        var lat = y ? Cesium.Math.toRadians(y) : latitude;
-        //偏移后的三维坐标
-        var offset = Cesium.Cartesian3.fromRadians(lng, lat, z - height);
-        var translation = Cesium.Cartesian3.subtract(offset, surface, new Cesium.Cartesian3());
-        //tileset.modelMatrix转换
-        model.modelMatrix = Cesium.Matrix4.fromTranslation(translation);
-    }
-    function offsetHeight(model, height) {
-        //高度偏差，正数为向上偏，负数为向下偏，根据真实的模型位置不断进行调整
-        //计算tileset的绑定范围
-        var boundingSphere = model.boundingSphere;
-        //计算中心点位置
-        var cartographic = Cesium.Cartographic.fromCartesian(boundingSphere.center);
-        var longitude = cartographic.longitude, latitude = cartographic.latitude;
-        //计算中心点位置坐标
-        var surface = Cesium.Cartesian3.fromRadians(longitude, latitude, 0);
-        //偏移后的三维坐标
-        var offset = Cesium.Cartesian3.fromRadians(longitude, latitude, height);
-        var translation = Cesium.Cartesian3.subtract(offset, surface, new Cesium.Cartesian3());
-        //tileset.modelMatrix转换
-        model.modelMatrix = Cesium.Matrix4.fromTranslation(translation);
-    }
+            // 将自定义着色器应用到模型
+            this.tileset.customShader = flatCustomShader;
+        };
+        /**
+         * 将世界坐标系下的笛卡尔坐标数组转换为模型局部坐标系下的二维坐标数组
+         * @param {Cartesian3[]} positions - 世界坐标系下的坐标数组
+         * @returns {number[][]} 模型局部坐标系下的二维坐标数组
+         */
+        Flatten.prototype.car3ToLocal = function (positions) {
+            var arr = [];
+            for (var i = 0; i < positions.length; i++) {
+                var position = positions[i];
+                // 应用逆变换矩阵将世界坐标转换为局部坐标
+                var lp = Cesium.Matrix4.multiplyByPoint(this._localMatrix, position, new Cesium.Cartesian3());
+                // 只取x,y坐标，忽略z坐标（用于二维平面判断）
+                arr.push([lp.x, lp.y]);
+            }
+            return arr;
+        };
+        return Flatten;
+    }());
 
     var TilesModel = /** @class */ (function () {
         /**
@@ -1055,6 +1223,10 @@
          */
         function TilesModel(viewer) {
             this.viewer = viewer;
+            /**
+             * 模型压平类
+             */
+            this.Flatten = Flatten;
         }
         /**
          * 加载3Dtiles模型

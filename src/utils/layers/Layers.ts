@@ -11,6 +11,7 @@ import { Viewer } from "src/core"
 import { getEntityById, removeEntity } from "./Entity"
 import { getPrimitiveById, removePrimitive } from "./Primitive"
 import { getImageryById, removeImageryLayer } from "./Imagery"
+import { remove3Dtiles } from "./3DTiles"
 
 /**
  * 获取场景中所有的图层
@@ -76,7 +77,7 @@ export function removeLayer(viewer: Viewer, layer: any) {
       removePrimitive(viewer, layer)
       break
     case "3dtiles":
-      // remove3Dtiles(viewer, layer)
+      remove3Dtiles(viewer, layer)
       break
     case "imagerylayer":
       removeImageryLayer(viewer, layer)

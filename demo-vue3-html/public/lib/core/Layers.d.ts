@@ -1,6 +1,6 @@
 import Viewer from "./Viewer";
 import { Add } from "./layers/AddCreator";
-import TilesModel from "./layers/Model";
+import TilesModel from "./layers/TilesModel";
 declare class Layers {
     private viewer;
     /**

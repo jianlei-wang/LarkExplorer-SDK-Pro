@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>008-加载3DTiles</title>
+    <title>009-3DTiles模型压平</title>
     <script src="./Cesium/Cesium.js"></script>
     <link rel="stylesheet" href="./Cesium/Widgets/widgets.css" />
     <script src="./lib/larkexplorer.umd.js"></script>
@@ -41,35 +41,52 @@
         mapboxController: true,
         terrain: DefaultTerrain,
       })
-      initGui()
+      viewer.lightShadow = false
+      initModel()
       let model
-      async function addModel(url) {
-        model = await viewer.Layers.TilesModel.add3DTiles(url, 15)
-        model && viewer.flyTo(model)
+      async function initModel() {
+        model = await viewer.Layers.TilesModel.add3DTiles(
+          "https://app.larkview.cn/lkstationfile/projects/project_1468b9682b6e4b4198cbea2a6ae9b815/layers/model/会昌_倾斜摄影_20250905_1/tileset.json",
+          555
+        )
+        viewer.zoomTo(model)
       }
-      function removeModel() {
-        viewer.Layers.remove(model)
+      const positions = [
+        { x: -2496764.3305735635, y: 5194659.0739088245, z: 2723291.684294914 },
+        { x: -2496871.560840603, y: 5194632.9391253935, z: 2723293.4302219413 },
+        { x: -2496888.006309254, y: 5194665.904477011, z: 2723206.5715125515 },
+        { x: -2496785.420688826, y: 5194704.91080695, z: 2723205.988085272 },
+      ]
+
+      let flat
+      function startFlat() {
+        console.log(model)
+        flat = new viewer.Layers.TilesModel.Flatten(model, {
+          height: -50,
+        })
+        console.log(flat)
+        flat.addRegion({
+          positions: positions, // 压平区域的顶点坐标数组
+          id: new Date().getTime(), // 唯一标识符，使用当前时间戳
+        })
       }
+      function endFlat() {
+        flat && flat.destroy()
+      }
+      initGui()
+
       function initGui() {
         const params = {
-          message: "GUI面板-加载3DTiles",
-          模型地址:
-            "https://app.larkview.cn/lkstationfile/projects/project_1468b9682b6e4b4198cbea2a6ae9b815/layers/model/会昌_倾斜摄影_20250905_1/tileset.json",
-          显示模型: false,
-          阴影光源: true,
+          message: "GUI面板-3DTiles模型压平",
+          模型压平: false,
         }
         const gui = new dat.GUI({ autoPlace: false })
         const customContainer = document.getElementById("gui-box")
         customContainer.appendChild(gui.domElement)
         gui.add(params, "message")
-        const modelUrl = gui.add(params, "模型地址")
-        const boolShow = gui.add(params, "显示模型")
-        boolShow.onFinishChange((bool) => {
-          bool ? addModel(modelUrl.getValue()) : removeModel()
-        })
-        const boolLight = gui.add(params, "阴影光源")
-        boolLight.onFinishChange((bool) => {
-          viewer.lightShadow = bool
+        const boolFlat = gui.add(params, "模型压平")
+        boolFlat.onFinishChange((bool) => {
+          bool ? startFlat() : endFlat()
         })
       }
     </script>

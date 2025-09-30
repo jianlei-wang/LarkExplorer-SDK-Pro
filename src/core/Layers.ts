@@ -5,7 +5,7 @@ import {
 } from "src/utils/layers/Layers"
 import Viewer from "./Viewer"
 import { Add } from "./layers/AddCreator"
-import TilesModel from "./layers/Model"
+import TilesModel from "./layers/TilesModel"
 
 class Layers {
   /**

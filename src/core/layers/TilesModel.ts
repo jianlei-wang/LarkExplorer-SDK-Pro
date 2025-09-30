@@ -6,6 +6,7 @@ import {
 import Viewer from "../Viewer"
 import { DegreePos } from "src/types"
 import { Cesium3DTileset } from "cesium"
+import Flatten from "./3dtiles/Flatten"
 
 class TilesModel {
   /**
@@ -13,7 +14,11 @@ class TilesModel {
    * @param {Viewer} viewer - 地图场景对象
    */
   constructor(private viewer: Viewer) {}
-
+  /**
+   * 模型压平类
+   */
+  public Flatten = Flatten
+  
   /**
    * 加载3Dtiles模型
    * @param {string} url - 模型地址

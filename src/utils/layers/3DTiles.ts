@@ -22,15 +22,13 @@ export async function load3Dtiles(
   url: string,
   height?: number
 ) {
-  console.log(url)
-
   let model = await Cesium3DTileset.fromUrl(url, DEF_3DTILES_OPTION)
   // 超出可视区的瓦片进行销毁，提高性能
   model.tileLoad.addEventListener((tile) => {
     tile.tileset.trimLoadedTiles()
   })
   height && offsetHeight(model, height)
-  viewer.scene.primitives.add(model)
+  model = viewer.scene.primitives.add(model)
   SetCusMark(model, "primitive", "3dtiles", true)
   return model
 }
@@ -97,4 +95,13 @@ export function offsetHeight(model: Cesium3DTileset, height: number) {
   var translation = Cartesian3.subtract(offset, surface, new Cartesian3())
   //tileset.modelMatrix转换
   model.modelMatrix = Matrix4.fromTranslation(translation)
+}
+
+/**
+ * 移除3dtiles图层
+ * @param viewer - 地图场景
+ * @param model - 待移除模型
+ */
+export const remove3Dtiles = (viewer: Viewer, model: Cesium3DTileset) => {
+  model && viewer.scene.primitives.remove(model)
 }
