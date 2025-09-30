@@ -2,13 +2,17 @@
   "out": "./api-docs",
   "source": {
     "include": [
+      "src\\core\\AroundPoint.ts",
       "src\\core\\BaseLayer.ts",
       "src\\core\\EventEmitter.ts",
       "src\\core\\graphics\\PointGraphics.ts",
       "src\\core\\Handler.ts",
       "src\\core\\index.ts",
+      "src\\core\\layers\\3dtiles\\Flatten.ts",
       "src\\core\\layers\\AddCreator.ts",
+      "src\\core\\layers\\TilesModel.ts",
       "src\\core\\Layers.ts",
+      "src\\core\\Navigation.ts",
       "src\\core\\Terrain.ts",
       "src\\core\\Viewer.ts",
       "src/utils/DefineObject.ts",

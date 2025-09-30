@@ -37,6 +37,13 @@ export async function PointPrimitiveAdd(
   return primitive
 }
 
+/**
+ * 地图添加点数据-entity形式
+ * @param viewer
+ * @param positions
+ * @param options
+ * @returns
+ */
 export function PointEntityAdd(
   viewer: Viewer,
   positions: Cartesian3[],

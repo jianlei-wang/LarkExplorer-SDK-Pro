@@ -40,6 +40,7 @@ export interface WindowPos {
 
 /**
  * 欧拉角
+ * @interface
  * @property {Number} heading - 偏航角，绕Z周
  * @property {Number} pitch - 俯仰角，绕Y轴
  * @property {Number} roll - 滚动角，绕X轴
@@ -52,6 +53,7 @@ export interface H_P_R {
 
 /**
  * 相机状态参数
+ * @interface
  * @property {DegreePos} degrees - WGS84坐标值
  * @property {Cartesian3} position - 笛卡尔坐标值
  * @property {H_P_R} hpr - 欧拉角
@@ -64,7 +66,7 @@ export interface CameraStatus {
 
 /**
  * 视角参数
- * @typedef ViewStatus
+ * @interface
  * @property {Cartesian3 | DegreePos} position - 笛卡尔Or经纬度 坐标值
  * @property {H_P_R} hpr - 欧拉角
  */

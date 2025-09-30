@@ -14,6 +14,14 @@ import { randomId } from "../Generate"
 import { SetCusMark } from "../layers/Layers"
 import { getExtent } from "../Coordinate"
 
+/**
+ * 水面对象参数
+ * @instance
+ * @property {string} [id] - 可选，对象唯一绑定id
+ * @property {string} [img] - 可选，水面纹理贴图
+ * @property {Array<Cartesian3[]>} [polygons] - 水面坐标集合，笛卡尔坐标类型
+ * @property {string[]} [ids] - 可选，每个水面专属id
+ */
 export interface WaterOptions {
   id?: string
   img?: string
@@ -21,6 +29,12 @@ export interface WaterOptions {
   ids?: string[]
 }
 
+/**
+ * 加载基础水面
+ * @param viewer 
+ * @param options 
+ * @returns 
+ */
 export function addWaters(viewer: Viewer, options: WaterOptions) {
   const { id, img = waterImg, polygons, ids = [] } = options
   const instances: GeometryInstance[] = []

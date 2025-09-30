@@ -8,7 +8,7 @@ import {
 import { PointOption } from "../graphics/PointGraphics"
 import { addWaters, WaterOptions } from "src/utils/create-add/WaterAdd"
 
-export class Add {
+class Add {
   /**
    * 图层-添加对象类
    * @param  {Viewer} viewer 地图场景对象
@@ -17,6 +17,7 @@ export class Add {
 
   /**
    * 添加点-Primitive形式
+   * @method
    * @param {Cartesian3} position 点位置，笛卡尔坐标
    * @param {PointOption} option 点参数
    * @returns {Cesium.Primitive} 点对象，Primitive类对象，参照Cesium
@@ -65,8 +66,15 @@ export class Add {
     return pointEntity
   }
 
+  /**
+   * 添加水面-普通模式
+   * @param {WaterOptions} options - 水面对象条件
+   * @returns {Cesium.Primitive} - 水面对象，Primitive类对象，参照Cesium
+   */
   addWaters(options: WaterOptions) {
     const waterPrimitives = addWaters(this.viewer, options)
     return waterPrimitives
   }
 }
+
+export { Add }
