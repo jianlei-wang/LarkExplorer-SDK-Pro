@@ -79,6 +79,11 @@ class Add {
     return waterPrimitives
   }
 
+  /**
+   * 添加动态水面-支持倒影
+   * @param {WaterReflectionOption} options - 水面对象条件
+   * @returns {WaterPrimitive} - 水面对象，WaterPrimitive类
+   */
   addWaterReflection(options: WaterReflectionOption) {
     return new WaterPrimitive(this.viewer, options)
   }

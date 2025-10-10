@@ -26,6 +26,8 @@
         left: 5px;
         top: 5px;
         z-index: 99;
+        background: #000;
+        padding: 2px;
       }
     </style>
   </head>
@@ -473,15 +475,18 @@
         [100.652228194443055, 26.622640287833299],
       ]
       const positions = points.map((ele) =>
-        Cesium.Cartographic.fromDegrees(ele[0], ele[1], 1480 + 5 * Math.random())
+        Cesium.Cartographic.fromDegrees(
+          ele[0],
+          ele[1],
+          1480 + 5 * Math.random()
+        )
       )
 
-      const aaa = viewer.Layers.Add.addWaterReflection({
+      const waterReflect = viewer.Layers.Add.addWaterReflection({
         scene: viewer.scene,
         positions: positions,
         height: 1480,
         rippleSize: 50,
-        // normalMapUrl: "./waternormals.jpg",
       })
 
       const gui = new dat.GUI({ autoPlace: false })
@@ -489,75 +494,109 @@
       customContainer.appendChild(gui.domElement)
 
       const waterParams = {
-        rippleSize: 50.0,
-        transparency: 0.9,
-        reflectivity: 0.3,
-        distortion: 3.7,
-        height: 1480,
-        boxSize: 50,
-        boxSpeed: 3.0,
-        boxColor: "#42A5F5",
-        showBox: true,
+        message: "GUI面板-动态水面倒影",
+        波纹大小: 50.0,
+        水面透明度: 0.9,
+        水面反射率: 0.3,
+        水面扭曲强度: 3.7,
+        水面高度: 1480,
+        x: 0.0,
+        y: 0.0,
+        z: 1.0,
+        太阳高光强度: 100.0,
+        盒子大小: 50,
+        盒子移动速度: 3.0,
+        盒子颜色: "#42A5F5",
+        显示盒子: true,
+        水体颜色: "#00aeff",
       }
       function waterParamsUpdate() {
-        aaa.rippleSize = waterParams["rippleSize"]
-        aaa.waterAlpha = waterParams["transparency"]
-        aaa.reflectivity = waterParams["reflectivity"]
-        aaa.distortionScale = waterParams["distortion"]
-        aaa.height = waterParams["height"]
-
+        waterReflect.rippleSize = waterParams["波纹大小"]
+        waterReflect.waterAlpha = waterParams["水面透明度"]
+        waterReflect.reflectivity = waterParams["水面反射率"]
+        waterReflect.distortionScale = waterParams["水面扭曲强度"]
+        waterReflect.waterColor = waterParams["水体颜色"]
+        waterReflect.height = waterParams["水面高度"]
+        const { x, y, z } = waterParams
+        waterReflect.lightDirection = { x, y, z }
+        waterReflect.sunShiny = waterParams["太阳高光强度"]
+        const size = waterParams["盒子大小"]
         if (floatingBox) {
-          floatingBox.box.dimensions = new Cesium.Cartesian3(
-            waterParams["boxSize"],
-            waterParams["boxSize"],
-            waterParams["boxSize"]
-          )
+          floatingBox.box.dimensions = new Cesium.Cartesian3(size, size, size)
 
-          let color = Cesium.Color.fromCssColorString(waterParams["boxColor"])
+          let color = Cesium.Color.fromCssColorString(waterParams["盒子颜色"])
           floatingBox.box.material = color.withAlpha(0.8)
 
-          floatingBox.show = waterParams["showBox"]
+          floatingBox.show = waterParams["显示盒子"]
         }
       }
-
+      gui.add(waterParams, "message")
       gui
-        .add(waterParams, "rippleSize")
+        .add(waterParams, "波纹大小")
         .min(0)
         .max(300)
         .onChange(waterParamsUpdate)
       gui
-        .add(waterParams, "transparency")
+        .add(waterParams, "水面透明度")
         .min(0)
         .max(1)
         .onChange(waterParamsUpdate)
       gui
-        .add(waterParams, "reflectivity")
+        .add(waterParams, "水面反射率")
         .min(0)
         .max(1)
         .onChange(waterParamsUpdate)
       gui
-        .add(waterParams, "distortion")
+        .add(waterParams, "水面扭曲强度")
         .min(0)
         .max(8)
         .onChange(waterParamsUpdate)
+      gui.addColor(waterParams, "水体颜色").onChange(waterParamsUpdate)
+
       gui
-        .add(waterParams, "height")
+        .add(waterParams, "水面高度")
         .min(1470)
         .max(1520)
         .onChange(waterParamsUpdate)
 
+      const lightDir = gui.addFolder("光照方向")
+      lightDir.open()
+      lightDir
+        .add(waterParams, "x")
+        .min(-1)
+        .max(1)
+        .step(0.1)
+        .onChange(waterParamsUpdate)
+      lightDir
+        .add(waterParams, "y")
+        .min(-1)
+        .max(1)
+        .step(0.1)
+        .onChange(waterParamsUpdate)
+      lightDir
+        .add(waterParams, "z")
+        .min(-1)
+        .max(1)
+        .step(0.1)
+        .onChange(waterParamsUpdate)
+      gui
+        .add(waterParams, "太阳高光强度")
+        .min(1)
+        .max(100)
+        .onChange(waterParamsUpdate)
+
       const boxFolder = gui.addFolder("Floating Box")
       boxFolder
-        .add(waterParams, "boxSize")
+        .add(waterParams, "盒子大小")
         .min(30)
         .max(80)
         .onChange(waterParamsUpdate)
-      boxFolder.add(waterParams, "boxSpeed").min(0.1).max(3)
-      boxFolder.addColor(waterParams, "boxColor").onChange(waterParamsUpdate)
-      boxFolder.add(waterParams, "showBox").onChange(waterParamsUpdate)
+      boxFolder.add(waterParams, "盒子移动速度").min(0.1).max(3)
+      boxFolder.addColor(waterParams, "盒子颜色").onChange(waterParamsUpdate)
+      boxFolder.add(waterParams, "显示盒子").onChange(waterParamsUpdate)
 
-      var ellipsoid = viewer.entities.add({
-        position: Cesium.Cartesian3.fromDegrees(100.66438, 26.56388,1600),
+      let ellipsoid = viewer.entities.add({
+        position: Cesium.Cartesian3.fromDegrees(100.66438, 26.56388, 1600),
         ellipsoid: {
           radii: new Cesium.Cartesian3(100, 100, 100),
           outline: true,
@@ -567,23 +606,23 @@
         },
       })
 
-      var floatingBox = viewer.entities.add({
+      let floatingBox = viewer.entities.add({
         name: "Floating Box",
         position: new Cesium.CallbackProperty(function (time) {
-          var longitude = 100.66938
-          var latitude = 26.56588
-          var waterHeight = waterParams["height"]
+          let longitude = 100.66938
+          let latitude = 26.56588
+          let waterHeight = waterParams["水面高度"]
 
-          var seconds = Cesium.JulianDate.secondsDifference(
+          let seconds = Cesium.JulianDate.secondsDifference(
             time,
             Cesium.JulianDate.fromDate(new Date())
           )
-          var speed = waterParams["boxSpeed"]
+          let speed = waterParams["盒子移动速度"]
 
-          var verticalOffset = 3 * Math.sin(seconds * speed)
+          let verticalOffset = 3 * Math.sin(seconds * speed)
 
-          var horizontalOffset_x = 2 * Math.sin(seconds * speed * 0.3)
-          var horizontalOffset_y = 2 * Math.cos(seconds * speed * 0.4)
+          let horizontalOffset_x = 2 * Math.sin(seconds * speed * 0.3)
+          let horizontalOffset_y = 2 * Math.cos(seconds * speed * 0.4)
           const curPos = Cesium.Cartesian3.fromDegrees(
             longitude + horizontalOffset_x * 0.0001,
             latitude + horizontalOffset_y * 0.0001,
@@ -593,26 +632,26 @@
         }, false),
         box: {
           dimensions: new Cesium.Cartesian3(
-            waterParams["boxSize"],
-            waterParams["boxSize"],
-            waterParams["boxSize"]
+            waterParams["盒子大小"],
+            waterParams["盒子大小"],
+            waterParams["盒子大小"]
           ),
           material: Cesium.Color.fromCssColorString(
-            waterParams["boxColor"]
+            waterParams["盒子颜色"]
           ).withAlpha(0.8),
           outline: true,
           outlineColor: Cesium.Color.BLACK,
         },
-        show: waterParams["showBox"],
+        show: waterParams["显示盒子"],
       })
 
       viewer.scene.preUpdate.addEventListener(function (scene, time) {
         if (floatingBox && floatingBox.show) {
-          var seconds = Cesium.JulianDate.secondsDifference(
+          let seconds = Cesium.JulianDate.secondsDifference(
             time,
             Cesium.JulianDate.fromDate(new Date())
           )
-          var rotationSpeed = waterParams["boxSpeed"] * 0.3
+          let rotationSpeed = waterParams["盒子移动速度"] * 0.3
 
           floatingBox.orientation = Cesium.Quaternion.fromHeadingPitchRoll(
             new Cesium.HeadingPitchRoll(
@@ -624,7 +663,7 @@
         }
       })
 
-      viewer.flyTo([ellipsoid,floatingBox], {
+      viewer.flyTo([ellipsoid, floatingBox], {
         duration: 1,
         offset: {
           heading: Cesium.Math.toRadians(90.0),

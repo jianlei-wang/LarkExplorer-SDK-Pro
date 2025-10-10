@@ -1,5 +1,5 @@
 import * as Cesium from 'cesium';
-import { ScreenSpaceEventType, ScreenSpaceEventHandler, ImageryLayer, SingleTileImageryProvider, ArcGisMapServerImageryProvider, WebMapTileServiceImageryProvider, createWorldTerrainAsync, Terrain as Terrain$1, CesiumTerrainProvider, Cartographic, Math as Math$1, EllipsoidTerrainProvider, Cartesian3, Ellipsoid, Cesium3DTileFeature, Cesium3DTileset, Model, sampleTerrainMostDetailed, Matrix4, Entity, BillboardCollection, Primitive, GroundPrimitive, GroundPolylinePrimitive, Rectangle, Cartesian2, NearFarScalar, PointPrimitiveCollection, GeometryInstance, PolygonGeometry, PolygonHierarchy, EllipsoidSurfaceAppearance, Material, Color, Cesium3DTilePassState, Cesium3DTilePass, Texture, TextureMinificationFilter, TextureMagnificationFilter, Camera, Plane, Cartesian4, MaterialAppearance, VertexFormat, Transforms, defined, PixelDatatype, PixelFormat, Sampler, TextureWrap, Framebuffer, MipmapHint, defaultValue, SunLight, BoundingRectangle, UniformState, PerspectiveFrustum, CustomShader, UniformType, JulianDate, clone, ConstantProperty, HeightReference, PointGraphics } from 'cesium';
+import { ScreenSpaceEventType, ScreenSpaceEventHandler, ImageryLayer, SingleTileImageryProvider, ArcGisMapServerImageryProvider, WebMapTileServiceImageryProvider, createWorldTerrainAsync, Terrain as Terrain$1, CesiumTerrainProvider, Cartographic, Math as Math$1, EllipsoidTerrainProvider, Cartesian3, Ellipsoid, Cesium3DTileFeature, Cesium3DTileset, Model, sampleTerrainMostDetailed, Matrix4, Entity, BillboardCollection, Primitive, GroundPrimitive, GroundPolylinePrimitive, Rectangle, Cartesian2, NearFarScalar, PointPrimitiveCollection, GeometryInstance, PolygonGeometry, PolygonHierarchy, EllipsoidSurfaceAppearance, Material, Color, Cesium3DTilePassState, Cesium3DTilePass, Texture, TextureMinificationFilter, TextureMagnificationFilter, Camera, Plane, Cartesian4, defined, MaterialAppearance, VertexFormat, Transforms, PixelDatatype, PixelFormat, Sampler, TextureWrap, Framebuffer, MipmapHint, SunLight, BoundingRectangle, UniformState, PerspectiveFrustum, CustomShader, UniformType, JulianDate, clone, ConstantProperty, HeightReference, PointGraphics } from 'cesium';
 
 /******************************************************************************
 Copyright (c) Microsoft Corporation.
@@ -1300,7 +1300,7 @@ var waterImg = "data:image/png;base64,/9j/4AAQSkZJRgABAQEASABIAAD/4QB0RXhpZgAATU
  * @Author: jianlei wang
  * @Date: 2025-04-23 09:42:04
  * @Last Modified by: jianlei wang
- * @Last Modified time: 2025-09-26 09:44:11
+ * @Last Modified time: 2025-10-10 09:45:27
  */
 /**
  * 生成唯一id
@@ -1368,8 +1368,38 @@ function addWaters(viewer, options) {
     return primitive;
 }
 
-var WaterMaterialSource = "\nuniform sampler2D image;\n\nuniform sampler2D normalTexture;\nuniform float time;\n\nuniform mat4 fixedFrameToEastNorthUpTransform;\n\nin vec4 v_worldPosition;\nin vec4 v_uv;\n\nuniform float size;\nuniform vec4 waterColor;\nuniform float waterAlpha;\nuniform float rf0;\nuniform vec3 lightDirection;\nuniform float sunShiny;\nuniform float distortionScale;\n\nvec3 sunColor = vec3( 1.0 );\n\n\nvec4 getNoise(sampler2D normalMap, vec2 uv) {\n    // \u6DFB\u52A0\u591A\u4E2A\u9891\u7387\u7684\u566A\u58F0\u6765\u751F\u6210\u81EA\u7136\u7684\u6C34\u9762\u6CE2\u7EB9\u6548\u679C\n    vec2 uv0 = (uv / 103.0) + vec2(time / 17.0, time / 29.0);\n    vec2 uv1 = uv / 107.0 - vec2(time / -19.0, time / 31.0);\n    vec2 uv2 = uv / vec2(8907.0, 9803.0) + vec2(time / 101.0, time / 97.0);\n    vec2 uv3 = uv / vec2(1091.0, 1027.0) - vec2(time / 109.0, time / -113.0);\n    \n    // \u4F7F\u7528\u66F4\u591A\u7684\u566A\u58F0\u53E0\u52A0\uFF0C\u4EE5\u4EA7\u751F\u66F4\u4E30\u5BCC\u7684\u6CE2\u7EB9\u6548\u679C\n    vec4 noise = texture(normalMap, uv0) * 0.5 + texture(normalMap, uv1) * 0.3 + \n                 texture(normalMap, uv2) * 0.1 + texture(normalMap, uv3) * 0.1;\n                 \n    return noise * 0.5 - 1.0;  // \u5F52\u4E00\u5316\u5230 [-1, 1] \u533A\u95F4\n}\n\n\nvoid sunLight(const vec3 surfaceNormal, const vec3 eyeDirection, float shiny, \n              float spec, float diffuse, inout vec3 diffuseColor, \n              inout vec3 specularColor, inout vec3 sunDirection) {\n    vec3 reflection = normalize(reflect(-sunDirection, surfaceNormal));\n    float direction = max(0.0, dot(eyeDirection, reflection)); // \u8BA1\u7B97\u89C6\u89D2\u4E0E\u53CD\u5C04\u5149\u7684\u89D2\u5EA6\n    specularColor += pow(direction, shiny) * sunColor * spec;  // \u9AD8\u5149\u6548\u679C\n    diffuseColor += max(dot(sunDirection, surfaceNormal), 0.0) * sunColor * diffuse;  // \u6F2B\u53CD\u5C04\u6548\u679C\n}\n\n\nczm_material czm_getMaterial(czm_materialInput materialInput) {\n    czm_material material = czm_getDefaultMaterial(materialInput);\n\n    vec2 transformedSt = materialInput.st * 2.0 - 1.0;\n    vec4 noise = getNoise(normalTexture, transformedSt * size);\n    vec3 surfaceNormal = normalize(noise.xzy);\n\n    vec3 diffuseLight = vec3(0.0);\n    vec3 specularLight = vec3(0.0);\n\n    vec3 eye = (czm_inverseView * vec4(vec3(0.0), 1.0)).xyz;\n    eye = (fixedFrameToEastNorthUpTransform * vec4(eye, 1.0)).xyz;\n    vec3 world = (fixedFrameToEastNorthUpTransform * vec4(v_worldPosition.xyz, 1.0)).xyz;\n\n    vec3 worldToEye = eye - world;\n    worldToEye = vec3(worldToEye.x, worldToEye.z, -worldToEye.y);\n    vec3 eyeDirection = normalize(worldToEye);\n\n    vec3 sunDirection = normalize(lightDirection);\n\n    float shiny = sunShiny;\n    float spec = 2.0;\n    float diffuse = 0.5;\n    sunLight(surfaceNormal, eyeDirection, shiny, spec, diffuse, diffuseLight, specularLight, sunDirection);\n\n    float distance = length(worldToEye);\n    float distortionScale = distortionScale;\n    vec2 distortion = surfaceNormal.xz * (0.001 + 1.0 / distance) * distortionScale;\n    vec3 reflectionSample = vec3(texture(image, (v_uv.xy / v_uv.w) * 0.5 + 0.5 + distortion));\n\n    float theta = max(dot(eyeDirection, surfaceNormal), 0.0);\n    float reflectance = mix(rf0, 1.0, pow(1.0 - theta, 5.0));\n\n    vec3 waterColor = waterColor.rgb;\n    vec3 scatter = max(0.0, dot(surfaceNormal, eyeDirection)) * waterColor;\n\n    // \u6DF7\u5408\u6563\u5C04\u5149\u4E0E\u53CD\u5C04\u5149\n    vec3 albedo = mix(\n        sunColor * diffuseLight * 0.3 + scatter,\n        vec3(0.1) + reflectionSample * 0.9 + reflectionSample * specularLight,\n        reflectance\n    );\n\n    material.diffuse = albedo.rgb;\n    material.alpha = waterAlpha;\n\n    return material;\n}\n\n";
-var WaterAppearanceVS = "\nin vec3 position3DHigh;\nin vec3 position3DLow;\nin vec3 normal;\nin vec2 st;\nin float batchId;\n\nout vec3 v_positionEC;\nout vec3 v_normalEC;\nout vec2 v_st;\n\nuniform mat4 reflectorProjectionMatrix;\nuniform mat4 reflectorViewMatrix;\nuniform mat4 reflectMatrix;\nout vec4 v_worldPosition;\nout vec4 v_uv;\n\n\nvoid main()\n{\n    vec4 p = czm_computePosition();\n\n    v_positionEC = (czm_modelViewRelativeToEye * p).xyz;\n    v_normalEC = czm_normal * normal;\n    v_st = st;\n\n    mat4 modelView = reflectorViewMatrix * reflectMatrix * czm_model;\n    modelView[3][0] = 0.0;\n    modelView[3][1] = 0.0;\n    modelView[3][2] = 0.0;\n    v_uv = reflectorProjectionMatrix * modelView * p;\n    vec4 positionMC = vec4( position3DHigh + position3DLow, 1.0 );\n    v_worldPosition = czm_model * positionMC;\n\n    gl_Position = czm_modelViewProjectionRelativeToEye * p;\n}\n";
+/**
+ * 为参数设置默认值。如果第一个参数不为 undefined，则返回第一个参数，否则返回第二个参数。
+ * @template T
+ * @param {T | undefined | null} a - 如果已定义且非空，则返回的值
+ * @param {T} b - 默认值
+ * @returns {T} 如果第一个参数不为 undefined 和 null，则返回第一个参数，否则返回第二个参数。
+ * @example
+ * param = defaultValue(param, 'default');
+ */
+function defaultValue(a, b) {
+    return a !== undefined && a !== null ? a : b;
+}
+/**
+ * 冻结的空对象，用作传递给 `set` 方法的选项的默认值
+ */
+defaultValue.EMPTY_OBJECT = Object.freeze({});
+
+var DefaultValue = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    defaultValue: defaultValue,
+    'default': defaultValue
+});
+
+// 水面材质的 GLSL 片元着色器源码，模拟水面反射、波纹、光照等视觉效果。
+var WaterMaterialSource = "\nuniform sampler2D image;\nuniform sampler2D normalTexture;\nuniform float time;\nuniform mat4 fixedFrameToEnu;\nin vec4 v_worldPosition;\nin vec4 v_uv;\nuniform float size;\nuniform vec4 waterColor;\nuniform float waterAlpha;\nuniform float rf0;\nuniform vec3 lightDirection;\nuniform float sunShiny;\nuniform float distortionScale;\nvec3 sunColor = vec3( 1.0 );\nvec4 getNoise(sampler2D normalMap, vec2 uv) {\n  float t = mod(time, 10.0); // \u8BA9 t \u5728 0~100 \u4E4B\u95F4\u5FAA\u73AF\n  // \u6DFB\u52A0\u591A\u4E2A\u9891\u7387\u7684\u566A\u58F0\u6765\u751F\u6210\u81EA\u7136\u7684\u6C34\u9762\u6CE2\u7EB9\u6548\u679C\n  vec2 uv0 = (uv / 103.0) + vec2(t / 17.0, t / 29.0);\n  vec2 uv1 = uv / 107.0 - vec2(t / -19.0, t / 31.0);\n  vec2 uv2 = uv / vec2(8907.0, 9803.0) + vec2(t / 101.0, t / 97.0);\n  vec2 uv3 = uv / vec2(1091.0, 1027.0) - vec2(t / 109.0, t / -113.0);\n  // \u4F7F\u7528\u66F4\u591A\u7684\u566A\u58F0\u53E0\u52A0\uFF0C\u4EE5\u4EA7\u751F\u66F4\u4E30\u5BCC\u7684\u6CE2\u7EB9\u6548\u679C\n  vec4 noise = texture(normalMap, uv0) * 0.5 + texture(normalMap, uv1) * 0.3 + texture(normalMap, uv2) * 0.1 + texture(normalMap, uv3) * 0.1;\n  return noise * 0.5 - 1.0;  // \u5F52\u4E00\u5316\u5230 [-1, 1] \u533A\u95F4\n}\nvoid sunLight(const vec3 surfaceNormal, const vec3 eyeDirection, float shiny, float spec, float diffuse, inout vec3 diffuseColor, inout vec3 specularColor, inout vec3 sunDirection) {\n  vec3 reflection = normalize(reflect(-sunDirection, surfaceNormal));\n  float direction = max(0.0, dot(eyeDirection, reflection)); // \u8BA1\u7B97\u89C6\u89D2\u4E0E\u53CD\u5C04\u5149\u7684\u89D2\u5EA6\n  specularColor += pow(direction, shiny) * sunColor * spec;  // \u9AD8\u5149\u6548\u679C\n  diffuseColor += max(dot(sunDirection, surfaceNormal), 0.0) * sunColor * diffuse;  // \u6F2B\u53CD\u5C04\u6548\u679C\n}\nczm_material czm_getMaterial(czm_materialInput materialInput) {\n  czm_material material = czm_getDefaultMaterial(materialInput);\n  vec2 transformedSt = materialInput.st * 2.0 - 1.0;\n  vec4 noise = getNoise(normalTexture, transformedSt * size);\n  vec3 surfaceNormal = normalize(noise.xzy);\n  vec3 diffuseLight = vec3(0.0);\n  vec3 specularLight = vec3(0.0);\n  vec3 eye = (czm_inverseView * vec4(vec3(0.0), 1.0)).xyz;\n  eye = (fixedFrameToEnu * vec4(eye, 1.0)).xyz;\n  vec3 world = (fixedFrameToEnu * vec4(v_worldPosition.xyz, 1.0)).xyz;\n  vec3 worldToEye = eye - world;\n  worldToEye = vec3(worldToEye.x, worldToEye.z, -worldToEye.y);\n  vec3 eyeDirection = normalize(worldToEye);\n  vec3 sunDirection = normalize(lightDirection);\n  float shiny = sunShiny;\n  float spec = 2.0;\n  float diffuse = 0.5;\n  sunLight(surfaceNormal, eyeDirection, shiny, spec, diffuse, diffuseLight, specularLight, sunDirection);\n  float distance = length(worldToEye);\n  float distortionScale = distortionScale;\n  float attenuation = clamp(1.0 / (distance * 0.5 + 1.0), 0.6, 1.0);\n  vec2 uvDistorted = (v_uv.xy / v_uv.w) * 0.5 + 0.5 + surfaceNormal.xz * distortionScale * 0.02 * attenuation;\n  vec3 reflectionSample = vec3(texture(image, uvDistorted));\n  float theta = max(dot(eyeDirection, surfaceNormal), 0.0);\n  float reflectance = mix(rf0, 1.0, pow(1.0 - theta, 5.0));\n  vec3 waterColor = waterColor.rgb;\n  vec3 scatter = max(0.0, dot(surfaceNormal, eyeDirection)) * waterColor;\n  // \u6DF7\u5408\u6563\u5C04\u5149\u4E0E\u53CD\u5C04\u5149\n  vec3 albedo = mix(\n    sunColor * diffuseLight * 0.3 + scatter,\n    vec3(0.1) + reflectionSample * 0.9 + reflectionSample * specularLight,\n    reflectance\n  );\n  material.diffuse = albedo.rgb;\n  material.alpha = waterAlpha;\n  return material;\n}\n\n";
+// 水面顶点着色器源码，计算水面顶点的反射坐标和世界坐标
+var WaterAppearanceVS = "\nin vec3 position3DHigh;\nin vec3 position3DLow;\nin vec3 normal;\nin vec2 st;\nin float batchId;\nout vec3 v_positionEC;\nout vec3 v_normalEC;\nout vec2 v_st;\nuniform mat4 reflectorProjectionMatrix;\nuniform mat4 reflectorViewMatrix;\nuniform mat4 reflectMatrix;\nout vec4 v_worldPosition;\nout vec4 v_uv;\nvoid main() {\n  vec4 p = czm_computePosition();\n  v_positionEC = (czm_modelViewRelativeToEye * p).xyz;\n  v_normalEC = czm_normal * normal;\n  v_st = st;\n  mat4 modelView = reflectorViewMatrix * reflectMatrix * czm_model;\n  modelView[3][0] = 0.0;\n  modelView[3][1] = 0.0;\n  modelView[3][2] = 0.0;\n  v_uv = reflectorProjectionMatrix * modelView * p;\n  vec4 positionMC = vec4( position3DHigh + position3DLow, 1.0 );\n  v_worldPosition = czm_model * positionMC;\n  gl_Position = czm_modelViewProjectionRelativeToEye * p;\n}\n";
+/**
+ * @description 创建一个占位纹理（1x1红色像素），用于初始化材质，防止纹理未加载时出错。
+ * @param {any} context Cesium 渲染上下文
+ * @returns {Texture} 占位纹理对象
+ */
 function createPlaceHolderTexture(context) {
     var placeholderTexture = new Texture({
         context: context,
@@ -1388,6 +1418,12 @@ function createPlaceHolderTexture(context) {
     placeholderTexture.type = "sampler2D";
     return placeholderTexture;
 }
+/**
+ * @description 计算反射向量，用于模拟光线在水面上的反射效果。
+ * @param {Cartesian3} view 视线向量
+ * @param {Cartesian3} normal 法向量
+ * @returns {Cartesian3} 反射后的向量
+ */
 function reflect(view, normal) {
     var scaledNormal = normal.clone();
     var reflect = view.clone();
@@ -1395,39 +1431,62 @@ function reflect(view, normal) {
     Cartesian3.multiplyByScalar(normal, scalar, scaledNormal);
     return Cartesian3.subtract(view, scaledNormal, reflect);
 }
+/**
+ * @description 判断一个数是否为2的幂，用于判断纹理是否支持生成 mipmap。
+ * @param {number} value 数值
+ * @returns {boolean} 是否为2的幂
+ */
 function isPowerOfTwo(value) {
     return (value & (value - 1)) === 0 && value !== 0;
 }
+/**
+ * @description 给材质添加纹理 Uniform，支持异步加载图片并生成 Cesium 纹理对象。
+ * @param {object} options 配置项
+ * @property {any} context Cesium 渲染上下文
+ * @property {Material} material 材质对象
+ * @property {string} uniformName Uniform 名称
+ * @property {string} imgSrc 图片地址
+ * @property {TextureWrap} [wrapS] 水平方向包裹方式
+ * @property {TextureWrap} [wrapT] 垂直方向包裹方式
+ * @property {TextureMinificationFilter} [minificationFilter] 缩小过滤方式
+ * @property {TextureMagnificationFilter} [magnificationFilter] 放大过滤方式
+ */
 function addTextureUniform(options) {
-    var context = options.context, material = options.material, uniformName = options.uniformName, imgSrc = options.imgSrc;
-    var wrapS = options.wrapS || TextureWrap.REPEAT;
-    var wrapT = options.wrapT || TextureWrap.REPEAT;
-    var minificationFilter = options.minificationFilter || TextureMinificationFilter.LINEAR;
-    var magnificationFilter = options.magnificationFilter || TextureMagnificationFilter.LINEAR;
-    var img = new Image();
-    img.src = imgSrc;
-    img.addEventListener("load", function () {
-        var texture = new Texture({
-            context: context,
-            source: img,
-            sampler: new Sampler({
-                wrapS: wrapS,
-                wrapT: wrapT,
-                minificationFilter: minificationFilter,
-                magnificationFilter: magnificationFilter,
-            }),
-        });
+    var context = options.context, material = options.material, uniformName = options.uniformName, imgSrc = options.imgSrc, wrapS = options.wrapS, wrapT = options.wrapT;
+    var ws = wrapS || TextureWrap.REPEAT;
+    var wt = wrapT || TextureWrap.REPEAT;
+    var miniF = options.minificationFilter || TextureMinificationFilter.LINEAR;
+    var magF = options.magnificationFilter || TextureMagnificationFilter.LINEAR;
+    var source = new Image();
+    source.src = imgSrc;
+    source.addEventListener("load", function () {
+        var sampler = new Sampler({ ws: ws, wt: wt, miniF: miniF, magF: magF });
+        var texture = new Texture({ context: context, source: source, sampler: sampler });
         texture.type = "sampler2D";
-        if (isPowerOfTwo(img.width) && isPowerOfTwo(img.height)) {
+        if (isPowerOfTwo(source.width) && isPowerOfTwo(source.height)) {
             texture.generateMipmap(MipmapHint.NICEST);
         }
         material.uniforms[uniformName] = texture;
     });
 }
+/**
+ * @constant
+ * @description Cesium 3D Tiles 渲染 Pass 状态，用于场景渲染流程控制。
+ */
 var renderTilesetPassState = new Cesium3DTilePassState({
     pass: Cesium3DTilePass.RENDER,
 });
+/**
+ * @constant
+ * @description 用于场景背景色的临时变量。
+ */
 var scratchBackgroundColor = new Color();
+/**
+ * @function render
+ * @description 渲染场景到帧缓冲区，用于生成水面反射的场景纹理。
+ * @param {any} scene Cesium 场景对象
+ * @param {any} passStateFramebuffer 帧缓冲区对象
+ */
 function render(scene, passStateFramebuffer) {
     var frameState = scene._frameState;
     var context = scene.context;
@@ -1470,22 +1529,28 @@ function render(scene, passStateFramebuffer) {
     passState.blendingEnabled = undefined;
     passState.scissorTest = undefined;
     passState.viewport = BoundingRectangle.clone(viewport, passState.viewport);
-    if (defined(scene.globe)) {
-        scene.globe.beginFrame(frameState);
-    }
+    var globe = scene.globe;
+    defined(globe) && globe.beginFrame(frameState);
     scene.updateEnvironment();
     scene.updateAndExecuteCommands(passState, backgroundColor);
     scene.resolveFramebuffers(passState);
-    if (defined(scene.globe)) {
-        scene.globe.endFrame(frameState);
-        if (!scene.globe.tilesLoaded) {
+    if (defined(globe)) {
+        globe.endFrame(frameState);
+        if (!globe.tilesLoaded) {
             scene._renderRequested = true;
         }
     }
     context.endFrame();
 }
-var clipBias = 0;
+var clipBias = 0; //水面反射裁剪偏移量，用于调整反射效果
 var WaterPrimitive = /** @class */ (function () {
+    /**
+     * @classdesc 水面 Primitive 类，负责创建和管理水面反射和波纹效果。
+     * 构造后会自动将水面添加到 Cesium 场景中，并实现反射、波纹等视觉效果
+     * @param {Viewer} viewer Cesium Viewer 实例
+     * @param {WaterReflectionOption} options 水面反射参数选项
+     * @description 初始化水面反射相关参数和资源，并将水面添加到场景。
+     */
     function WaterPrimitive(viewer, options) {
         var _this = this;
         this._hdr = false;
@@ -1494,29 +1559,30 @@ var WaterPrimitive = /** @class */ (function () {
         this._flowDegrees = defaultValue(options.flowDegrees, 0);
         var positions = options.positions;
         var total = positions.length;
-        var x = 0;
-        var y = 0;
-        var z = 0;
+        var _x = 0;
+        var _y = 0;
+        var _z = 0;
         this._positions = [];
         positions.forEach(function (p) {
-            var lat = p.latitude;
-            var lon = p.longitude;
-            x += Math.cos(lat) * Math.cos(lon);
-            y += Math.cos(lat) * Math.sin(lon);
-            z += Math.sin(lat);
-            _this._positions.push(Cartesian3.fromRadians(p.longitude, p.latitude, _this._height));
+            var latitude = p.latitude, longitude = p.longitude;
+            _x += Math.cos(latitude) * Math.cos(longitude);
+            _y += Math.cos(latitude) * Math.sin(longitude);
+            _z += Math.sin(latitude);
+            _this._positions.push(Cartesian3.fromRadians(longitude, latitude, _this._height));
         });
-        x /= total;
-        y /= total;
-        z /= total;
-        var centerLon = Math.atan2(y, x);
-        var hyp = Math.sqrt(x * x + y * y);
-        var centerLat = Math.atan2(z, hyp);
-        this._reflectorWorldPosition = Cartesian3.fromRadians(centerLon, centerLat, this._height);
-        this._originalReflectorWorldPosition = this._reflectorWorldPosition.clone();
-        this._normal = Ellipsoid.WGS84.geodeticSurfaceNormal(this._reflectorWorldPosition);
-        this._waterPlane = Plane.fromPointNormal(this._reflectorWorldPosition, this._normal);
-        this._reflectMatrix = new Matrix4(-2 * this._waterPlane.normal.x * this._waterPlane.normal.x + 1, -2 * this._waterPlane.normal.x * this._waterPlane.normal.y, -2 * this._waterPlane.normal.x * this._waterPlane.normal.z, -2 * this._waterPlane.normal.x * this._waterPlane.distance, -2 * this._waterPlane.normal.y * this._waterPlane.normal.x, -2 * this._waterPlane.normal.y * this._waterPlane.normal.y + 1, -2 * this._waterPlane.normal.y * this._waterPlane.normal.z, -2 * this._waterPlane.normal.y * this._waterPlane.distance, -2 * this._waterPlane.normal.z * this._waterPlane.normal.x, -2 * this._waterPlane.normal.z * this._waterPlane.normal.y, -2 * this._waterPlane.normal.z * this._waterPlane.normal.z + 1, -2 * this._waterPlane.normal.z * this._waterPlane.distance, 0, 0, 0, 1);
+        _x /= total;
+        _y /= total;
+        _z /= total;
+        var cX = Math.atan2(_y, _x);
+        var hyp = Math.sqrt(_x * _x + _y * _y);
+        var cY = Math.atan2(_z, hyp);
+        this._rwPos = Cartesian3.fromRadians(cX, cY, this._height);
+        this._originRWPos = this._rwPos.clone();
+        this._normal = Ellipsoid.WGS84.geodeticSurfaceNormal(this._rwPos);
+        this._waterPlane = Plane.fromPointNormal(this._rwPos, this._normal);
+        var _a = this._waterPlane, normal = _a.normal, distance = _a.distance;
+        var x = normal.x, y = normal.y, z = normal.z;
+        this._reflectMatrix = new Matrix4(-2 * x * x + 1, -2 * x * y, -2 * x * z, -2 * x * distance, -2 * y * x, -2 * y * y + 1, -2 * y * z, -2 * y * distance, -2 * z * x, -2 * z * y, -2 * z * z + 1, -2 * z * distance, 0, 0, 0, 1);
         this._reflectorViewMatrix = Matrix4.IDENTITY.clone();
         this._reflectorProjectionMatrix = Matrix4.IDENTITY.clone();
         this._initUniforms = {
@@ -1580,6 +1646,10 @@ var WaterPrimitive = /** @class */ (function () {
         };
     }
     Object.defineProperty(WaterPrimitive.prototype, "rippleSize", {
+        /**
+         * @member {number} rippleSize
+         * @description 水面波纹大小
+         */
         get: function () {
             return this._material.uniforms.size;
         },
@@ -1590,6 +1660,10 @@ var WaterPrimitive = /** @class */ (function () {
         configurable: true
     });
     Object.defineProperty(WaterPrimitive.prototype, "waterAlpha", {
+        /**
+         * @member {number} waterAlpha
+         * @description 水面透明度
+         */
         get: function () {
             return this._material.uniforms.waterAlpha;
         },
@@ -1600,6 +1674,10 @@ var WaterPrimitive = /** @class */ (function () {
         configurable: true
     });
     Object.defineProperty(WaterPrimitive.prototype, "reflectivity", {
+        /**
+         * @member {number} reflectivity
+         * @description 水面反射率
+         */
         get: function () {
             return this._material.uniforms.rf0;
         },
@@ -1610,6 +1688,10 @@ var WaterPrimitive = /** @class */ (function () {
         configurable: true
     });
     Object.defineProperty(WaterPrimitive.prototype, "distortionScale", {
+        /**
+         * @member {number} distortionScale
+         * @description 水面扭曲强度
+         */
         get: function () {
             return this._material.uniforms.distortionScale;
         },
@@ -1620,24 +1702,74 @@ var WaterPrimitive = /** @class */ (function () {
         configurable: true
     });
     Object.defineProperty(WaterPrimitive.prototype, "height", {
+        /**
+         * @member {number} height
+         * @description 水面高度
+         */
         get: function () {
             return this._height;
         },
         set: function (value) {
             this._height = value;
-            var rwpCa = Cartographic.fromCartesian(this._originalReflectorWorldPosition);
+            var rwpCa = Cartographic.fromCartesian(this._originRWPos);
             var newRwpCa = Cartesian3.fromRadians(rwpCa.longitude, rwpCa.latitude, this._height);
-            var move = Cartesian3.subtract(newRwpCa, this._originalReflectorWorldPosition, new Cartesian3());
+            var move = Cartesian3.subtract(newRwpCa, this._originRWPos, new Cartesian3());
             var moveMatrix4 = Matrix4.fromTranslation(move);
             this._primitive.modelMatrix = moveMatrix4;
-            this._reflectorWorldPosition = newRwpCa;
-            this._normal = Ellipsoid.WGS84.geodeticSurfaceNormal(this._reflectorWorldPosition);
-            this._waterPlane = Plane.fromPointNormal(this._reflectorWorldPosition, this._normal);
+            this._rwPos = newRwpCa;
+            this._normal = Ellipsoid.WGS84.geodeticSurfaceNormal(this._rwPos);
+            this._waterPlane = Plane.fromPointNormal(this._rwPos, this._normal);
             this._reflectMatrix = new Matrix4(-2 * this._waterPlane.normal.x * this._waterPlane.normal.x + 1, -2 * this._waterPlane.normal.x * this._waterPlane.normal.y, -2 * this._waterPlane.normal.x * this._waterPlane.normal.z, -2 * this._waterPlane.normal.x * this._waterPlane.distance, -2 * this._waterPlane.normal.y * this._waterPlane.normal.x, -2 * this._waterPlane.normal.y * this._waterPlane.normal.y + 1, -2 * this._waterPlane.normal.y * this._waterPlane.normal.z, -2 * this._waterPlane.normal.y * this._waterPlane.distance, -2 * this._waterPlane.normal.z * this._waterPlane.normal.x, -2 * this._waterPlane.normal.z * this._waterPlane.normal.y, -2 * this._waterPlane.normal.z * this._waterPlane.normal.z + 1, -2 * this._waterPlane.normal.z * this._waterPlane.distance, 0, 0, 0, 1);
         },
         enumerable: false,
         configurable: true
     });
+    Object.defineProperty(WaterPrimitive.prototype, "sunShiny", {
+        /**
+         * @member {number} sunShiny
+         * @description 太阳高光强度
+         */
+        get: function () {
+            return this._material.uniforms.sunShiny;
+        },
+        set: function (value) {
+            this._material.uniforms.sunShiny = value;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(WaterPrimitive.prototype, "lightDirection", {
+        /**
+         * @member {Cartesian3} lightDirection
+         * @description 光照方向
+         */
+        get: function () {
+            return this._material.uniforms.lightDirection;
+        },
+        set: function (value) {
+            this._material.uniforms.lightDirection = value;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(WaterPrimitive.prototype, "waterColor", {
+        /**
+         * @member {string} waterColor
+         * @description 水面颜色
+         */
+        get: function () {
+            return this._material.uniforms.waterColor.toCssHexString();
+        },
+        set: function (value) {
+            this._material.uniforms.waterColor = Color.fromCssColorString(value);
+        },
+        enumerable: false,
+        configurable: true
+    });
+    /**
+     * @description 创建水面反射材质，包含反射场景纹理和法线贴图。
+     * @returns {Material} 水面材质对象
+     */
     WaterPrimitive.prototype._createReflectionWaterMaterial = function () {
         var context = this._scene.context;
         var placeholderTexture = createPlaceHolderTexture(context);
@@ -1658,7 +1790,7 @@ var WaterPrimitive = /** @class */ (function () {
             normalTexture: placeholderTexture,
             image: texture,
             time: 0,
-            fixedFrameToEastNorthUpTransform: Matrix4.toArray(this._getFixedFrameToEastNorthUpTransformFromWorldMatrix()),
+            fixedFrameToEnu: Matrix4.toArray(this._getFixedFrameToEastNorthUpTransformFromWorldMatrix()),
         };
         var material = new Material({
             fabric: {
@@ -1678,38 +1810,43 @@ var WaterPrimitive = /** @class */ (function () {
         });
         return material;
     };
+    /**
+     * @description 更新虚拟相机参数，用于生成水面反射效果。
+     * @param {Camera} camera 当前场景相机
+     * @returns {boolean} 是否成功更新
+     */
     WaterPrimitive.prototype._updateVirtualCamera = function (camera) {
         var lookAtPosition = new Cartesian3(0, 0, -1);
         var target = new Cartesian3();
         //@ts-ignore
         this._virtualCamera = Camera.clone(camera, this._virtualCamera);
         var cameraWorldPosition = camera.positionWC.clone();
-        var view = Cartesian3.subtract(this._reflectorWorldPosition, cameraWorldPosition, new Cartesian3());
+        var view = Cartesian3.subtract(this._rwPos, cameraWorldPosition, new Cartesian3());
         if (Cartesian3.dot(view, this._normal) > 0) {
             return false;
         }
         view = reflect(view, this._normal);
         Cartesian3.negate(view, view);
-        Cartesian3.add(view, this._reflectorWorldPosition, view);
+        Cartesian3.add(view, this._rwPos, view);
         this._virtualCamera.position = view.clone();
         Cartesian3.add(camera.directionWC, cameraWorldPosition, lookAtPosition);
-        Cartesian3.subtract(this._reflectorWorldPosition, lookAtPosition, target);
+        Cartesian3.subtract(this._rwPos, lookAtPosition, target);
         target = reflect(target, this._normal);
         Cartesian3.negate(target, target);
-        Cartesian3.add(target, this._reflectorWorldPosition, target);
+        Cartesian3.add(target, this._rwPos, target);
         this._virtualCamera.direction = Cartesian3.subtract(target, this._virtualCamera.position, new Cartesian3());
         Cartesian3.normalize(this._virtualCamera.direction, this._virtualCamera.direction);
         Cartesian3.add(camera.upWC, cameraWorldPosition, lookAtPosition);
-        Cartesian3.subtract(this._reflectorWorldPosition, lookAtPosition, target);
+        Cartesian3.subtract(this._rwPos, lookAtPosition, target);
         target = reflect(target, this._normal);
         Cartesian3.negate(target, target);
-        Cartesian3.add(target, this._reflectorWorldPosition, target);
+        Cartesian3.add(target, this._rwPos, target);
         this._virtualCamera.up = Cartesian3.subtract(target, this._virtualCamera.position, new Cartesian3());
         Cartesian3.normalize(this._virtualCamera.up, this._virtualCamera.up);
         this._reflectorProjectionMatrix =
             this._virtualCamera.frustum.projectionMatrix;
         this._reflectorViewMatrix = this._virtualCamera.viewMatrix;
-        var reflectorPlane = Plane.fromPointNormal(this._reflectorWorldPosition, this._normal);
+        var reflectorPlane = Plane.fromPointNormal(this._rwPos, this._normal);
         Plane.transform(reflectorPlane, this._virtualCamera.viewMatrix, reflectorPlane);
         var clipPlane = new Cartesian4(reflectorPlane.normal.x, reflectorPlane.normal.y, reflectorPlane.normal.z, reflectorPlane.distance);
         var projectionMatrix = Matrix4.clone(this._virtualCamera.frustum.projectionMatrix);
@@ -1723,8 +1860,14 @@ var WaterPrimitive = /** @class */ (function () {
             Matrix4.clone(projectionMatrix);
         return true;
     };
+    /**
+     * @description preRender事件处理，渲染水面反射。每帧调用，更新水面反射纹理。
+     * @param {any} scene Cesium 场景对象
+     */
     WaterPrimitive.prototype.preRender = function (scene) {
-        var currnetDefaultViewCamera = scene._defaultView.camera;
+        if (!defined(this._primitive))
+            return;
+        var curDefaultViewCamera = scene._defaultView.camera;
         var currentShadowMap = scene.shadowMap;
         var currentGlobe = scene.globe.show;
         var currentShowSkirts = scene.globe.showSkirts;
@@ -1751,16 +1894,23 @@ var WaterPrimitive = /** @class */ (function () {
         texture.type = "sampler2D";
         this._material.uniforms.image = texture;
         this._material.uniforms.time = performance.now() / 1000.0;
-        this._material.uniforms.fixedFrameToEastNorthUpTransform = Matrix4.toArray(this._getFixedFrameToEastNorthUpTransformFromWorldMatrix());
+        this._material.uniforms.fixedFrameToEnu = Matrix4.toArray(this._getFixedFrameToEastNorthUpTransformFromWorldMatrix());
         appearance.uniforms.reflectMatrix = Matrix4.toArray(this._reflectMatrix);
         appearance.uniforms.reflectorProjectionMatrix = Matrix4.toArray(this._reflectorProjectionMatrix);
         appearance.uniforms.reflectorViewMatrix = Matrix4.toArray(this._reflectorViewMatrix);
         this._primitive.show = true;
-        scene._defaultView.camera = currnetDefaultViewCamera;
+        scene._defaultView.camera = curDefaultViewCamera;
         scene.shadowMap = currentShadowMap;
         scene.globe.show = currentGlobe;
         scene.globe.showSkirts = currentShowSkirts;
     };
+    /**
+     * @description 创建水面 Primitive（几何体和材质），并设置反射相关 Uniform。
+     * @param {Cartesian3[]} positions 水面顶点坐标
+     * @param {number} extrudedHeight 水面高度
+     * @param {number} flowDegrees 水面旋转角度
+     * @returns {Primitive} 水面 Primitive 对象
+     */
     WaterPrimitive.prototype._createPrimitive = function (positions, extrudedHeight, flowDegrees) {
         var material = this._createReflectionWaterMaterial();
         this._material = material;
@@ -1790,11 +1940,22 @@ var WaterPrimitive = /** @class */ (function () {
         });
         return primitive;
     };
+    /**
+     * @description 获取世界坐标到 ENU 坐标系的变换矩阵。
+     * @returns {Matrix4} 变换矩阵
+     */
     WaterPrimitive.prototype._getFixedFrameToEastNorthUpTransformFromWorldMatrix = function () {
-        var eastNorthUpToFixedFrameTransform = Transforms.eastNorthUpToFixedFrame(this._reflectorWorldPosition);
-        var fixedFrameToEastNorthUpTransform = Matrix4.inverse(eastNorthUpToFixedFrameTransform, new Matrix4());
-        return fixedFrameToEastNorthUpTransform;
+        var EnuToFixedFrame = Transforms.eastNorthUpToFixedFrame(this._rwPos);
+        var fixedFrameToEnu = Matrix4.inverse(EnuToFixedFrame, new Matrix4());
+        return fixedFrameToEnu;
     };
+    /**
+     * @description 创建帧缓冲区资源，用于存储反射场景的渲染结果。
+     * @param {any} context Cesium 渲染上下文
+     * @param {number} width 帧缓冲区宽度
+     * @param {number} height 帧缓冲区高度
+     * @param {boolean} hdr 是否高动态范围
+     */
     WaterPrimitive.prototype._createFramebuffer = function (context, width, height, hdr) {
         var colorTexture = this._colorTexture;
         if (defined(colorTexture) &&
@@ -1837,6 +1998,9 @@ var WaterPrimitive = /** @class */ (function () {
             destroyAttachments: false,
         });
     };
+    /**
+     * @description 销毁帧缓冲区和纹理资源，释放显存。
+     */
     WaterPrimitive.prototype._destroyResource = function () {
         this._colorTexture && this._colorTexture.destroy();
         this._depthStencilTexture && this._depthStencilTexture.destroy();
@@ -1844,6 +2008,27 @@ var WaterPrimitive = /** @class */ (function () {
         this._colorTexture = undefined;
         this._depthStencilTexture = undefined;
         this._colorFramebuffer = undefined;
+    };
+    /**
+     * @description 销毁并移除动态水面对象，包括场景中的 Primitive、事件监听和显存资源。
+     */
+    WaterPrimitive.prototype.destroy = function () {
+        // 移除 preRender 事件监听
+        if (this._scene && this.preRender) {
+            this._scene.preRender.removeEventListener(this.preRender);
+        }
+        // 从场景中移除水面 Primitive
+        if (this._scene && this._primitive) {
+            this._scene.primitives.remove(this._primitive);
+        }
+        // 销毁显存资源
+        this._destroyResource();
+        // 清空引用
+        this._primitive = undefined;
+        this._material = undefined;
+        this._colorFramebuffer = undefined;
+        this._colorTexture = undefined;
+        this._depthStencilTexture = undefined;
     };
     return WaterPrimitive;
 }());
@@ -1924,6 +2109,11 @@ var Add = /** @class */ (function () {
         var waterPrimitives = addWaters(this.viewer, options);
         return waterPrimitives;
     };
+    /**
+     * 添加动态水面-支持倒影
+     * @param {WaterReflectionOption} options - 水面对象条件
+     * @returns {WaterPrimitive} - 水面对象，WaterPrimitive类
+     */
     Add.prototype.addWaterReflection = function (options) {
         return new WaterPrimitive(this.viewer, options);
     };
@@ -2859,5 +3049,5 @@ var Screen = /*#__PURE__*/Object.freeze({
     __proto__: null
 });
 
-export { BaseLayer, Coordinate as Coordinates, EventNameMap, PointGraphic as PointGraphics, Screen, Viewer };
+export { BaseLayer, Coordinate as Coordinates, EventNameMap, PointGraphic as PointGraphics, Screen, Viewer, DefaultValue as defaultValue };
 //# sourceMappingURL=larkexplorer.esm.js.map
