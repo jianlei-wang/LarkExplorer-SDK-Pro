@@ -13,6 +13,7 @@ import { Cartesian3 } from "src/types/CesiumTypes"
 import { randomId } from "../Generate"
 import { SetCusMark } from "../layers/Layers"
 import { getExtent } from "../Coordinate"
+import WaterPrimitive, { WaterReflectionOption } from "../layers/WaterPrimitive"
 
 /**
  * 水面对象参数
@@ -31,9 +32,9 @@ export interface WaterOptions {
 
 /**
  * 加载基础水面
- * @param viewer 
- * @param options 
- * @returns 
+ * @param viewer
+ * @param options
+ * @returns
  */
 export function addWaters(viewer: Viewer, options: WaterOptions) {
   const { id, img = waterImg, polygons, ids = [] } = options

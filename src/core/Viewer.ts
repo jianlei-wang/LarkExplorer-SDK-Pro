@@ -140,7 +140,7 @@ class Viewer extends Cesium.Viewer {
     this.scene.skyAtmosphere!.show = true
 
     // 光照配置
-    this.scene.globe.enableLighting = true
+    this.scene.globe.enableLighting = false
 
     // 时间系统配置
     this.clock.multiplier = 1

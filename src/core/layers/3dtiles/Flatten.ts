@@ -27,10 +27,6 @@ export interface FlatRegionOption {
   id: string
 }
 
-/**
- * 3DTiles模型压平处理类
- * 通过自定义着色器实现对指定区域内模型的高度压平效果
- */
 class Flatten {
   /** 压平高度值 */
   private _flatHeight: number
@@ -46,7 +42,8 @@ class Flatten {
   private _localPositionsArr: Array<number[][]>
 
   /**
-   * 创建3DTiles模型压平实例
+   * 3DTiles模型压平处理类
+   * 通过自定义着色器实现对指定区域内模型的高度压平效果
    * @param {Cesium3DTileset} tileset - 需要进行压平操作的三维模型对象
    * @param {FlatOption} [option={}] - 压平参数配置
    * @throws {Error} 当模型对象无效时抛出异常

@@ -34,8 +34,11 @@ const treeDatas = [
     children: [
       { id: "007", label: "添加点" },
       { id: "008", label: "加载3DTiles" },
+      { id: "010", label: "动态水面" },
+      { id: "011", label: "动态水面（带倒影）" },
     ],
   },
+
   {
     id: "3DTiles",
     label: "3DTiles",

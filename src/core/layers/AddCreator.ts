@@ -7,6 +7,9 @@ import {
 } from "src/utils/create-add/PointAdd"
 import { PointOption } from "../graphics/PointGraphics"
 import { addWaters, WaterOptions } from "src/utils/create-add/WaterAdd"
+import WaterPrimitive, {
+  WaterReflectionOption,
+} from "src/utils/layers/WaterPrimitive"
 
 class Add {
   /**
@@ -74,6 +77,10 @@ class Add {
   addWaters(options: WaterOptions) {
     const waterPrimitives = addWaters(this.viewer, options)
     return waterPrimitives
+  }
+
+  addWaterReflection(options: WaterReflectionOption) {
+    return new WaterPrimitive(this.viewer, options)
   }
 }
 

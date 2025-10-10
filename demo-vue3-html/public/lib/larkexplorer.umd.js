@@ -1291,6 +1291,13 @@
             });
         });
     }
+    /**
+     * 地图添加点数据-entity形式
+     * @param viewer
+     * @param positions
+     * @param options
+     * @returns
+     */
     function PointEntityAdd(viewer, positions, options) {
         if (options === void 0) { options = []; }
         var parent = viewer.entities.add(new Cesium.Entity());
@@ -1335,6 +1342,12 @@
         callback && typeof callback === "function" && callback(data);
     }
 
+    /**
+     * 加载基础水面
+     * @param viewer
+     * @param options
+     * @returns
+     */
     function addWaters(viewer, options) {
         var id = options.id, _a = options.img, img = _a === void 0 ? waterImg : _a, polygons = options.polygons, _b = options.ids, ids = _b === void 0 ? [] : _b;
         var instances = [];
@@ -1378,6 +1391,486 @@
         return primitive;
     }
 
+    var WaterMaterialSource = "\nuniform sampler2D image;\n\nuniform sampler2D normalTexture;\nuniform float time;\n\nuniform mat4 fixedFrameToEastNorthUpTransform;\n\nin vec4 v_worldPosition;\nin vec4 v_uv;\n\nuniform float size;\nuniform vec4 waterColor;\nuniform float waterAlpha;\nuniform float rf0;\nuniform vec3 lightDirection;\nuniform float sunShiny;\nuniform float distortionScale;\n\nvec3 sunColor = vec3( 1.0 );\n\n\nvec4 getNoise(sampler2D normalMap, vec2 uv) {\n    // \u6DFB\u52A0\u591A\u4E2A\u9891\u7387\u7684\u566A\u58F0\u6765\u751F\u6210\u81EA\u7136\u7684\u6C34\u9762\u6CE2\u7EB9\u6548\u679C\n    vec2 uv0 = (uv / 103.0) + vec2(time / 17.0, time / 29.0);\n    vec2 uv1 = uv / 107.0 - vec2(time / -19.0, time / 31.0);\n    vec2 uv2 = uv / vec2(8907.0, 9803.0) + vec2(time / 101.0, time / 97.0);\n    vec2 uv3 = uv / vec2(1091.0, 1027.0) - vec2(time / 109.0, time / -113.0);\n    \n    // \u4F7F\u7528\u66F4\u591A\u7684\u566A\u58F0\u53E0\u52A0\uFF0C\u4EE5\u4EA7\u751F\u66F4\u4E30\u5BCC\u7684\u6CE2\u7EB9\u6548\u679C\n    vec4 noise = texture(normalMap, uv0) * 0.5 + texture(normalMap, uv1) * 0.3 + \n                 texture(normalMap, uv2) * 0.1 + texture(normalMap, uv3) * 0.1;\n                 \n    return noise * 0.5 - 1.0;  // \u5F52\u4E00\u5316\u5230 [-1, 1] \u533A\u95F4\n}\n\n\nvoid sunLight(const vec3 surfaceNormal, const vec3 eyeDirection, float shiny, \n              float spec, float diffuse, inout vec3 diffuseColor, \n              inout vec3 specularColor, inout vec3 sunDirection) {\n    vec3 reflection = normalize(reflect(-sunDirection, surfaceNormal));\n    float direction = max(0.0, dot(eyeDirection, reflection)); // \u8BA1\u7B97\u89C6\u89D2\u4E0E\u53CD\u5C04\u5149\u7684\u89D2\u5EA6\n    specularColor += pow(direction, shiny) * sunColor * spec;  // \u9AD8\u5149\u6548\u679C\n    diffuseColor += max(dot(sunDirection, surfaceNormal), 0.0) * sunColor * diffuse;  // \u6F2B\u53CD\u5C04\u6548\u679C\n}\n\n\nczm_material czm_getMaterial(czm_materialInput materialInput) {\n    czm_material material = czm_getDefaultMaterial(materialInput);\n\n    vec2 transformedSt = materialInput.st * 2.0 - 1.0;\n    vec4 noise = getNoise(normalTexture, transformedSt * size);\n    vec3 surfaceNormal = normalize(noise.xzy);\n\n    vec3 diffuseLight = vec3(0.0);\n    vec3 specularLight = vec3(0.0);\n\n    vec3 eye = (czm_inverseView * vec4(vec3(0.0), 1.0)).xyz;\n    eye = (fixedFrameToEastNorthUpTransform * vec4(eye, 1.0)).xyz;\n    vec3 world = (fixedFrameToEastNorthUpTransform * vec4(v_worldPosition.xyz, 1.0)).xyz;\n\n    vec3 worldToEye = eye - world;\n    worldToEye = vec3(worldToEye.x, worldToEye.z, -worldToEye.y);\n    vec3 eyeDirection = normalize(worldToEye);\n\n    vec3 sunDirection = normalize(lightDirection);\n\n    float shiny = sunShiny;\n    float spec = 2.0;\n    float diffuse = 0.5;\n    sunLight(surfaceNormal, eyeDirection, shiny, spec, diffuse, diffuseLight, specularLight, sunDirection);\n\n    float distance = length(worldToEye);\n    float distortionScale = distortionScale;\n    vec2 distortion = surfaceNormal.xz * (0.001 + 1.0 / distance) * distortionScale;\n    vec3 reflectionSample = vec3(texture(image, (v_uv.xy / v_uv.w) * 0.5 + 0.5 + distortion));\n\n    float theta = max(dot(eyeDirection, surfaceNormal), 0.0);\n    float reflectance = mix(rf0, 1.0, pow(1.0 - theta, 5.0));\n\n    vec3 waterColor = waterColor.rgb;\n    vec3 scatter = max(0.0, dot(surfaceNormal, eyeDirection)) * waterColor;\n\n    // \u6DF7\u5408\u6563\u5C04\u5149\u4E0E\u53CD\u5C04\u5149\n    vec3 albedo = mix(\n        sunColor * diffuseLight * 0.3 + scatter,\n        vec3(0.1) + reflectionSample * 0.9 + reflectionSample * specularLight,\n        reflectance\n    );\n\n    material.diffuse = albedo.rgb;\n    material.alpha = waterAlpha;\n\n    return material;\n}\n\n";
+    var WaterAppearanceVS = "\nin vec3 position3DHigh;\nin vec3 position3DLow;\nin vec3 normal;\nin vec2 st;\nin float batchId;\n\nout vec3 v_positionEC;\nout vec3 v_normalEC;\nout vec2 v_st;\n\nuniform mat4 reflectorProjectionMatrix;\nuniform mat4 reflectorViewMatrix;\nuniform mat4 reflectMatrix;\nout vec4 v_worldPosition;\nout vec4 v_uv;\n\n\nvoid main()\n{\n    vec4 p = czm_computePosition();\n\n    v_positionEC = (czm_modelViewRelativeToEye * p).xyz;\n    v_normalEC = czm_normal * normal;\n    v_st = st;\n\n    mat4 modelView = reflectorViewMatrix * reflectMatrix * czm_model;\n    modelView[3][0] = 0.0;\n    modelView[3][1] = 0.0;\n    modelView[3][2] = 0.0;\n    v_uv = reflectorProjectionMatrix * modelView * p;\n    vec4 positionMC = vec4( position3DHigh + position3DLow, 1.0 );\n    v_worldPosition = czm_model * positionMC;\n\n    gl_Position = czm_modelViewProjectionRelativeToEye * p;\n}\n";
+    function createPlaceHolderTexture(context) {
+        var placeholderTexture = new Cesium.Texture({
+            context: context,
+            source: {
+                width: 1,
+                height: 1,
+                arrayBufferView: new Uint8Array([255, 0, 0, 255]),
+            },
+            sampler: new Cesium.Sampler({
+                wrapS: Cesium.TextureWrap.REPEAT,
+                wrapT: Cesium.TextureWrap.REPEAT,
+                minificationFilter: Cesium.TextureMinificationFilter.LINEAR,
+                magnificationFilter: Cesium.TextureMinificationFilter.LINEAR,
+            }),
+        });
+        placeholderTexture.type = "sampler2D";
+        return placeholderTexture;
+    }
+    function reflect(view, normal) {
+        var scaledNormal = normal.clone();
+        var reflect = view.clone();
+        var scalar = 2 * Cesium.Cartesian3.dot(view, normal);
+        Cesium.Cartesian3.multiplyByScalar(normal, scalar, scaledNormal);
+        return Cesium.Cartesian3.subtract(view, scaledNormal, reflect);
+    }
+    function isPowerOfTwo(value) {
+        return (value & (value - 1)) === 0 && value !== 0;
+    }
+    function addTextureUniform(options) {
+        var context = options.context, material = options.material, uniformName = options.uniformName, imgSrc = options.imgSrc;
+        var wrapS = options.wrapS || Cesium.TextureWrap.REPEAT;
+        var wrapT = options.wrapT || Cesium.TextureWrap.REPEAT;
+        var minificationFilter = options.minificationFilter || Cesium.TextureMinificationFilter.LINEAR;
+        var magnificationFilter = options.magnificationFilter || Cesium.TextureMagnificationFilter.LINEAR;
+        var img = new Image();
+        img.src = imgSrc;
+        img.addEventListener("load", function () {
+            var texture = new Cesium.Texture({
+                context: context,
+                source: img,
+                sampler: new Cesium.Sampler({
+                    wrapS: wrapS,
+                    wrapT: wrapT,
+                    minificationFilter: minificationFilter,
+                    magnificationFilter: magnificationFilter,
+                }),
+            });
+            texture.type = "sampler2D";
+            if (isPowerOfTwo(img.width) && isPowerOfTwo(img.height)) {
+                texture.generateMipmap(Cesium.MipmapHint.NICEST);
+            }
+            material.uniforms[uniformName] = texture;
+        });
+    }
+    var renderTilesetPassState = new Cesium.Cesium3DTilePassState({
+        pass: Cesium.Cesium3DTilePass.RENDER,
+    });
+    var scratchBackgroundColor = new Cesium.Color();
+    function render(scene, passStateFramebuffer) {
+        var frameState = scene._frameState;
+        var context = scene.context;
+        var us = context.uniformState;
+        var view = scene._defaultView;
+        scene._view = view;
+        scene.updateFrameState();
+        frameState.passes.render = true;
+        frameState.passes.postProcess = scene.postProcessStages.hasSelected;
+        frameState.tilesetPassState = renderTilesetPassState;
+        var backgroundColor = Cesium.defaultValue(scene.backgroundColor, Cesium.Color.BLUE);
+        if (scene._hdr) {
+            backgroundColor = Cesium.Color.clone(backgroundColor, scratchBackgroundColor);
+            backgroundColor.red = Math.pow(backgroundColor.red, scene.gamma);
+            backgroundColor.green = Math.pow(backgroundColor.green, scene.gamma);
+            backgroundColor.blue = Math.pow(backgroundColor.blue, scene.gamma);
+        }
+        frameState.backgroundColor = backgroundColor;
+        scene.fog.update(frameState);
+        us.update(frameState);
+        var shadowMap = scene.shadowMap;
+        if (Cesium.defined(shadowMap) && shadowMap.enabled) {
+            if (!Cesium.defined(scene.light) || scene.light instanceof Cesium.SunLight) {
+                Cesium.Cartesian3.negate(us.sunDirectionWC, scene._shadowMapCamera.direction);
+            }
+            else {
+                Cesium.Cartesian3.clone(scene.light.direction, scene._shadowMapCamera.direction);
+            }
+            frameState.shadowMaps.push(shadowMap);
+        }
+        scene._computeCommandList.length = 0;
+        scene._overlayCommandList.length = 0;
+        var viewport = view.viewport;
+        viewport.x = 0;
+        viewport.y = 0;
+        viewport.width = context.drawingBufferWidth;
+        viewport.height = context.drawingBufferHeight;
+        var passState = view.passState;
+        passState.framebuffer = passStateFramebuffer;
+        passState.blendingEnabled = undefined;
+        passState.scissorTest = undefined;
+        passState.viewport = Cesium.BoundingRectangle.clone(viewport, passState.viewport);
+        if (Cesium.defined(scene.globe)) {
+            scene.globe.beginFrame(frameState);
+        }
+        scene.updateEnvironment();
+        scene.updateAndExecuteCommands(passState, backgroundColor);
+        scene.resolveFramebuffers(passState);
+        if (Cesium.defined(scene.globe)) {
+            scene.globe.endFrame(frameState);
+            if (!scene.globe.tilesLoaded) {
+                scene._renderRequested = true;
+            }
+        }
+        context.endFrame();
+    }
+    var clipBias = 0;
+    var WaterPrimitive = /** @class */ (function () {
+        function WaterPrimitive(viewer, options) {
+            var _this = this;
+            this._hdr = false;
+            this._scene = viewer.scene;
+            this._height = options.height;
+            this._flowDegrees = Cesium.defaultValue(options.flowDegrees, 0);
+            var positions = options.positions;
+            var total = positions.length;
+            var x = 0;
+            var y = 0;
+            var z = 0;
+            this._positions = [];
+            positions.forEach(function (p) {
+                var lat = p.latitude;
+                var lon = p.longitude;
+                x += Math.cos(lat) * Math.cos(lon);
+                y += Math.cos(lat) * Math.sin(lon);
+                z += Math.sin(lat);
+                _this._positions.push(Cesium.Cartesian3.fromRadians(p.longitude, p.latitude, _this._height));
+            });
+            x /= total;
+            y /= total;
+            z /= total;
+            var centerLon = Math.atan2(y, x);
+            var hyp = Math.sqrt(x * x + y * y);
+            var centerLat = Math.atan2(z, hyp);
+            this._reflectorWorldPosition = Cesium.Cartesian3.fromRadians(centerLon, centerLat, this._height);
+            this._originalReflectorWorldPosition = this._reflectorWorldPosition.clone();
+            this._normal = Cesium.Ellipsoid.WGS84.geodeticSurfaceNormal(this._reflectorWorldPosition);
+            this._waterPlane = Cesium.Plane.fromPointNormal(this._reflectorWorldPosition, this._normal);
+            this._reflectMatrix = new Cesium.Matrix4(-2 * this._waterPlane.normal.x * this._waterPlane.normal.x + 1, -2 * this._waterPlane.normal.x * this._waterPlane.normal.y, -2 * this._waterPlane.normal.x * this._waterPlane.normal.z, -2 * this._waterPlane.normal.x * this._waterPlane.distance, -2 * this._waterPlane.normal.y * this._waterPlane.normal.x, -2 * this._waterPlane.normal.y * this._waterPlane.normal.y + 1, -2 * this._waterPlane.normal.y * this._waterPlane.normal.z, -2 * this._waterPlane.normal.y * this._waterPlane.distance, -2 * this._waterPlane.normal.z * this._waterPlane.normal.x, -2 * this._waterPlane.normal.z * this._waterPlane.normal.y, -2 * this._waterPlane.normal.z * this._waterPlane.normal.z + 1, -2 * this._waterPlane.normal.z * this._waterPlane.distance, 0, 0, 0, 1);
+            this._reflectorViewMatrix = Cesium.Matrix4.IDENTITY.clone();
+            this._reflectorProjectionMatrix = Cesium.Matrix4.IDENTITY.clone();
+            this._initUniforms = {
+                normalMapUrl: Cesium.defaultValue(options.normalMapUrl, waterImg),
+                size: Cesium.defaultValue(options.rippleSize, 50.0),
+                waterColor: Cesium.defaultValue(options.waterColor, Cesium.Color.fromCssColorString("#00aeff")),
+                waterAlpha: Cesium.defaultValue(options.waterAlpha, 0.9),
+                rf0: Cesium.defaultValue(options.reflectivity, 0.3),
+                lightDirection: Cesium.defaultValue(options.lightDirection, new Cesium.Cartesian3(0, 0, 1)),
+                sunShiny: Cesium.defaultValue(options.sunShiny, 100.0),
+                distortionScale: Cesium.defaultValue(options.distortionScale, 3.7),
+            };
+            var context = this._scene.context;
+            this._createFramebuffer(context, context.drawingBufferWidth, context.drawingBufferHeight, this._scene.highDynamicRange);
+            this._primitive = this._createPrimitive(this._positions, this._height, this._flowDegrees);
+            this._scene.primitives.add(this._primitive);
+            this.preRender = this.preRender.bind(this);
+            this._scene.preRender.addEventListener(this.preRender);
+            Cesium.UniformState.prototype.updateFrustum = function (frustum) {
+                Cesium.Matrix4.clone(Cesium.defaultValue(frustum.customProjectionMatrix, frustum.projectionMatrix), this._projection);
+                this._inverseProjectionDirty = true;
+                this._viewProjectionDirty = true;
+                this._inverseViewProjectionDirty = true;
+                this._modelViewProjectionDirty = true;
+                this._modelViewProjectionRelativeToEyeDirty = true;
+                if (Cesium.defined(frustum.infiniteProjectionMatrix)) {
+                    Cesium.Matrix4.clone(frustum.infiniteProjectionMatrix, this._infiniteProjection);
+                    this._modelViewInfiniteProjectionDirty = true;
+                }
+                this._currentFrustum.x = frustum.near;
+                this._currentFrustum.y = frustum.far;
+                this._farDepthFromNearPlusOne = frustum.far - frustum.near + 1.0;
+                this._log2FarDepthFromNearPlusOne = Math.log2(this._farDepthFromNearPlusOne);
+                this._oneOverLog2FarDepthFromNearPlusOne =
+                    1.0 / this._log2FarDepthFromNearPlusOne;
+                if (Cesium.defined(frustum._offCenterFrustum)) {
+                    frustum = frustum._offCenterFrustum;
+                }
+                this._frustumPlanes.x = frustum.top;
+                this._frustumPlanes.y = frustum.bottom;
+                this._frustumPlanes.z = frustum.left;
+                this._frustumPlanes.w = frustum.right;
+            };
+            Cesium.PerspectiveFrustum.prototype.clone = function (result) {
+                if (!Cesium.defined(result)) {
+                    result = new Cesium.PerspectiveFrustum();
+                }
+                result.aspectRatio = this.aspectRatio;
+                result.fov = this.fov;
+                result.near = this.near;
+                result.far = this.far;
+                result._aspectRatio = undefined;
+                result._fov = undefined;
+                result._near = undefined;
+                result._far = undefined;
+                //@ts-ignore
+                this._offCenterFrustum.clone(result._offCenterFrustum);
+                //@ts-ignore
+                result.customProjectionMatrix = this.customProjectionMatrix;
+                return result;
+            };
+        }
+        Object.defineProperty(WaterPrimitive.prototype, "rippleSize", {
+            get: function () {
+                return this._material.uniforms.size;
+            },
+            set: function (value) {
+                this._material.uniforms.size = value;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(WaterPrimitive.prototype, "waterAlpha", {
+            get: function () {
+                return this._material.uniforms.waterAlpha;
+            },
+            set: function (value) {
+                this._material.uniforms.waterAlpha = value;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(WaterPrimitive.prototype, "reflectivity", {
+            get: function () {
+                return this._material.uniforms.rf0;
+            },
+            set: function (value) {
+                this._material.uniforms.rf0 = value;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(WaterPrimitive.prototype, "distortionScale", {
+            get: function () {
+                return this._material.uniforms.distortionScale;
+            },
+            set: function (value) {
+                this._material.uniforms.distortionScale = value;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        Object.defineProperty(WaterPrimitive.prototype, "height", {
+            get: function () {
+                return this._height;
+            },
+            set: function (value) {
+                this._height = value;
+                var rwpCa = Cesium.Cartographic.fromCartesian(this._originalReflectorWorldPosition);
+                var newRwpCa = Cesium.Cartesian3.fromRadians(rwpCa.longitude, rwpCa.latitude, this._height);
+                var move = Cesium.Cartesian3.subtract(newRwpCa, this._originalReflectorWorldPosition, new Cesium.Cartesian3());
+                var moveMatrix4 = Cesium.Matrix4.fromTranslation(move);
+                this._primitive.modelMatrix = moveMatrix4;
+                this._reflectorWorldPosition = newRwpCa;
+                this._normal = Cesium.Ellipsoid.WGS84.geodeticSurfaceNormal(this._reflectorWorldPosition);
+                this._waterPlane = Cesium.Plane.fromPointNormal(this._reflectorWorldPosition, this._normal);
+                this._reflectMatrix = new Cesium.Matrix4(-2 * this._waterPlane.normal.x * this._waterPlane.normal.x + 1, -2 * this._waterPlane.normal.x * this._waterPlane.normal.y, -2 * this._waterPlane.normal.x * this._waterPlane.normal.z, -2 * this._waterPlane.normal.x * this._waterPlane.distance, -2 * this._waterPlane.normal.y * this._waterPlane.normal.x, -2 * this._waterPlane.normal.y * this._waterPlane.normal.y + 1, -2 * this._waterPlane.normal.y * this._waterPlane.normal.z, -2 * this._waterPlane.normal.y * this._waterPlane.distance, -2 * this._waterPlane.normal.z * this._waterPlane.normal.x, -2 * this._waterPlane.normal.z * this._waterPlane.normal.y, -2 * this._waterPlane.normal.z * this._waterPlane.normal.z + 1, -2 * this._waterPlane.normal.z * this._waterPlane.distance, 0, 0, 0, 1);
+            },
+            enumerable: false,
+            configurable: true
+        });
+        WaterPrimitive.prototype._createReflectionWaterMaterial = function () {
+            var context = this._scene.context;
+            var placeholderTexture = createPlaceHolderTexture(context);
+            var _a = this._initUniforms, normalMapUrl = _a.normalMapUrl, size = _a.size, waterColor = _a.waterColor, waterAlpha = _a.waterAlpha, rf0 = _a.rf0, lightDirection = _a.lightDirection, sunShiny = _a.sunShiny, distortionScale = _a.distortionScale;
+            var texture = Cesium.Texture.fromFramebuffer({
+                context: context,
+                framebuffer: this._colorFramebuffer,
+            });
+            texture.type = "sampler2D";
+            var initUniforms = {
+                size: size,
+                waterColor: waterColor,
+                waterAlpha: waterAlpha,
+                rf0: rf0,
+                lightDirection: lightDirection,
+                sunShiny: sunShiny,
+                distortionScale: distortionScale,
+                normalTexture: placeholderTexture,
+                image: texture,
+                time: 0,
+                fixedFrameToEastNorthUpTransform: Cesium.Matrix4.toArray(this._getFixedFrameToEastNorthUpTransformFromWorldMatrix()),
+            };
+            var material = new Cesium.Material({
+                fabric: {
+                    type: "ReflectionWater",
+                    uniforms: initUniforms,
+                    source: WaterMaterialSource,
+                },
+                translucent: false,
+                minificationFilter: Cesium.TextureMinificationFilter.LINEAR,
+                magnificationFilter: Cesium.TextureMagnificationFilter.LINEAR,
+            });
+            addTextureUniform({
+                context: context,
+                material: material,
+                uniformName: "normalTexture",
+                imgSrc: normalMapUrl,
+            });
+            return material;
+        };
+        WaterPrimitive.prototype._updateVirtualCamera = function (camera) {
+            var lookAtPosition = new Cesium.Cartesian3(0, 0, -1);
+            var target = new Cesium.Cartesian3();
+            //@ts-ignore
+            this._virtualCamera = Cesium.Camera.clone(camera, this._virtualCamera);
+            var cameraWorldPosition = camera.positionWC.clone();
+            var view = Cesium.Cartesian3.subtract(this._reflectorWorldPosition, cameraWorldPosition, new Cesium.Cartesian3());
+            if (Cesium.Cartesian3.dot(view, this._normal) > 0) {
+                return false;
+            }
+            view = reflect(view, this._normal);
+            Cesium.Cartesian3.negate(view, view);
+            Cesium.Cartesian3.add(view, this._reflectorWorldPosition, view);
+            this._virtualCamera.position = view.clone();
+            Cesium.Cartesian3.add(camera.directionWC, cameraWorldPosition, lookAtPosition);
+            Cesium.Cartesian3.subtract(this._reflectorWorldPosition, lookAtPosition, target);
+            target = reflect(target, this._normal);
+            Cesium.Cartesian3.negate(target, target);
+            Cesium.Cartesian3.add(target, this._reflectorWorldPosition, target);
+            this._virtualCamera.direction = Cesium.Cartesian3.subtract(target, this._virtualCamera.position, new Cesium.Cartesian3());
+            Cesium.Cartesian3.normalize(this._virtualCamera.direction, this._virtualCamera.direction);
+            Cesium.Cartesian3.add(camera.upWC, cameraWorldPosition, lookAtPosition);
+            Cesium.Cartesian3.subtract(this._reflectorWorldPosition, lookAtPosition, target);
+            target = reflect(target, this._normal);
+            Cesium.Cartesian3.negate(target, target);
+            Cesium.Cartesian3.add(target, this._reflectorWorldPosition, target);
+            this._virtualCamera.up = Cesium.Cartesian3.subtract(target, this._virtualCamera.position, new Cesium.Cartesian3());
+            Cesium.Cartesian3.normalize(this._virtualCamera.up, this._virtualCamera.up);
+            this._reflectorProjectionMatrix =
+                this._virtualCamera.frustum.projectionMatrix;
+            this._reflectorViewMatrix = this._virtualCamera.viewMatrix;
+            var reflectorPlane = Cesium.Plane.fromPointNormal(this._reflectorWorldPosition, this._normal);
+            Cesium.Plane.transform(reflectorPlane, this._virtualCamera.viewMatrix, reflectorPlane);
+            var clipPlane = new Cesium.Cartesian4(reflectorPlane.normal.x, reflectorPlane.normal.y, reflectorPlane.normal.z, reflectorPlane.distance);
+            var projectionMatrix = Cesium.Matrix4.clone(this._virtualCamera.frustum.projectionMatrix);
+            var q = new Cesium.Cartesian4((Math.sign(clipPlane.x) + projectionMatrix[8]) / projectionMatrix[0], (Math.sign(clipPlane.y) + projectionMatrix[9]) / projectionMatrix[5], -1, (1.0 + projectionMatrix[10]) / projectionMatrix[14]);
+            Cesium.Cartesian4.multiplyByScalar(clipPlane, 2.0 / Cesium.Cartesian4.dot(clipPlane, q), clipPlane);
+            projectionMatrix[2] = clipPlane.x;
+            projectionMatrix[6] = clipPlane.y;
+            projectionMatrix[10] = clipPlane.z + 1.0 - clipBias;
+            projectionMatrix[14] = clipPlane.w;
+            this._virtualCamera.frustum.customProjectionMatrix =
+                Cesium.Matrix4.clone(projectionMatrix);
+            return true;
+        };
+        WaterPrimitive.prototype.preRender = function (scene) {
+            var currnetDefaultViewCamera = scene._defaultView.camera;
+            var currentShadowMap = scene.shadowMap;
+            var currentGlobe = scene.globe.show;
+            var currentShowSkirts = scene.globe.showSkirts;
+            if (!this._updateVirtualCamera(scene._defaultView.camera)) {
+                this._primitive.show = false;
+                return;
+            }
+            this._primitive.show = false;
+            scene._defaultView.camera = this._virtualCamera;
+            scene.shadowMap = undefined;
+            scene.globe.show = false;
+            scene.globe.showSkirts = false;
+            var context = scene.context;
+            var width = context.drawingBufferWidth;
+            var height = context.drawingBufferHeight;
+            var hdr = scene.highDynamicRange;
+            this._createFramebuffer(context, width, height, hdr);
+            render(scene, this._colorFramebuffer);
+            var appearance = this._primitive.appearance;
+            var texture = Cesium.Texture.fromFramebuffer({
+                context: context,
+                framebuffer: this._colorFramebuffer,
+            });
+            texture.type = "sampler2D";
+            this._material.uniforms.image = texture;
+            this._material.uniforms.time = performance.now() / 1000.0;
+            this._material.uniforms.fixedFrameToEastNorthUpTransform = Cesium.Matrix4.toArray(this._getFixedFrameToEastNorthUpTransformFromWorldMatrix());
+            appearance.uniforms.reflectMatrix = Cesium.Matrix4.toArray(this._reflectMatrix);
+            appearance.uniforms.reflectorProjectionMatrix = Cesium.Matrix4.toArray(this._reflectorProjectionMatrix);
+            appearance.uniforms.reflectorViewMatrix = Cesium.Matrix4.toArray(this._reflectorViewMatrix);
+            this._primitive.show = true;
+            scene._defaultView.camera = currnetDefaultViewCamera;
+            scene.shadowMap = currentShadowMap;
+            scene.globe.show = currentGlobe;
+            scene.globe.showSkirts = currentShowSkirts;
+        };
+        WaterPrimitive.prototype._createPrimitive = function (positions, extrudedHeight, flowDegrees) {
+            var material = this._createReflectionWaterMaterial();
+            this._material = material;
+            var appearance = new Cesium.MaterialAppearance({
+                material: material,
+                vertexShaderSource: WaterAppearanceVS,
+                translucent: true,
+            });
+            appearance.uniforms = {};
+            appearance.uniforms.reflectMatrix = Cesium.Matrix4.toArray(this._reflectMatrix);
+            appearance.uniforms.reflectorProjectionMatrix = Cesium.Matrix4.toArray(this._reflectorProjectionMatrix);
+            appearance.uniforms.reflectorViewMatrix = Cesium.Matrix4.toArray(this._reflectorViewMatrix);
+            var primitive = new Cesium.Primitive({
+                geometryInstances: new Cesium.GeometryInstance({
+                    geometry: new Cesium.PolygonGeometry({
+                        polygonHierarchy: new Cesium.PolygonHierarchy(positions),
+                        perPositionHeight: true,
+                        extrudedHeight: extrudedHeight,
+                        stRotation: Cesium.Math.toRadians(flowDegrees),
+                        closeTop: true,
+                        closeBottom: false,
+                        vertexFormat: Cesium.VertexFormat.POSITION_NORMAL_AND_ST,
+                    }),
+                }),
+                appearance: appearance,
+                asynchronous: false,
+            });
+            return primitive;
+        };
+        WaterPrimitive.prototype._getFixedFrameToEastNorthUpTransformFromWorldMatrix = function () {
+            var eastNorthUpToFixedFrameTransform = Cesium.Transforms.eastNorthUpToFixedFrame(this._reflectorWorldPosition);
+            var fixedFrameToEastNorthUpTransform = Cesium.Matrix4.inverse(eastNorthUpToFixedFrameTransform, new Cesium.Matrix4());
+            return fixedFrameToEastNorthUpTransform;
+        };
+        WaterPrimitive.prototype._createFramebuffer = function (context, width, height, hdr) {
+            var colorTexture = this._colorTexture;
+            if (Cesium.defined(colorTexture) &&
+                colorTexture.width === width &&
+                colorTexture.height === height &&
+                this._hdr === hdr) {
+                return;
+            }
+            this._destroyResource();
+            this._hdr = hdr;
+            var pixelDatatype = hdr
+                ? context.halfFloatingPointTexture
+                    ? Cesium.PixelDatatype.HALF_FLOAT
+                    : Cesium.PixelDatatype.FLOAT
+                : Cesium.PixelDatatype.UNSIGNED_BYTE;
+            this._colorTexture = new Cesium.Texture({
+                context: context,
+                width: width,
+                height: height,
+                pixelFormat: Cesium.PixelFormat.RGBA,
+                pixelDatatype: pixelDatatype,
+                sampler: new Cesium.Sampler({
+                    wrapS: Cesium.TextureWrap.CLAMP_TO_EDGE,
+                    wrapT: Cesium.TextureWrap.CLAMP_TO_EDGE,
+                    minificationFilter: Cesium.TextureMinificationFilter.LINEAR,
+                    magnificationFilter: Cesium.TextureMagnificationFilter.LINEAR,
+                }),
+            });
+            this._depthStencilTexture = new Cesium.Texture({
+                context: context,
+                width: width,
+                height: height,
+                pixelFormat: Cesium.PixelFormat.DEPTH_STENCIL,
+                pixelDatatype: Cesium.PixelDatatype.UNSIGNED_INT_24_8,
+            });
+            this._colorFramebuffer = new Cesium.Framebuffer({
+                context: context,
+                colorTextures: [this._colorTexture],
+                depthStencilTexture: this._depthStencilTexture,
+                destroyAttachments: false,
+            });
+        };
+        WaterPrimitive.prototype._destroyResource = function () {
+            this._colorTexture && this._colorTexture.destroy();
+            this._depthStencilTexture && this._depthStencilTexture.destroy();
+            this._colorFramebuffer && this._colorFramebuffer.destroy();
+            this._colorTexture = undefined;
+            this._depthStencilTexture = undefined;
+            this._colorFramebuffer = undefined;
+        };
+        return WaterPrimitive;
+    }());
+
     var Add = /** @class */ (function () {
         /**
          * 图层-添加对象类
@@ -1388,6 +1881,7 @@
         }
         /**
          * 添加点-Primitive形式
+         * @method
          * @param {Cartesian3} position 点位置，笛卡尔坐标
          * @param {PointOption} option 点参数
          * @returns {Cesium.Primitive} 点对象，Primitive类对象，参照Cesium
@@ -1444,20 +1938,25 @@
             var pointEntity = PointEntityAdd(this.viewer, positions, options);
             return pointEntity;
         };
+        /**
+         * 添加水面-普通模式
+         * @param {WaterOptions} options - 水面对象条件
+         * @returns {Cesium.Primitive} - 水面对象，Primitive类对象，参照Cesium
+         */
         Add.prototype.addWaters = function (options) {
             var waterPrimitives = addWaters(this.viewer, options);
             return waterPrimitives;
         };
+        Add.prototype.addWaterReflection = function (options) {
+            return new WaterPrimitive(this.viewer, options);
+        };
         return Add;
     }());
 
-    /**
-     * 3DTiles模型压平处理类
-     * 通过自定义着色器实现对指定区域内模型的高度压平效果
-     */
     var Flatten = /** @class */ (function () {
         /**
-         * 创建3DTiles模型压平实例
+         * 3DTiles模型压平处理类
+         * 通过自定义着色器实现对指定区域内模型的高度压平效果
          * @param {Cesium3DTileset} tileset - 需要进行压平操作的三维模型对象
          * @param {FlatOption} [option={}] - 压平参数配置
          * @throws {Error} 当模型对象无效时抛出异常
@@ -2111,7 +2610,7 @@
             this.scene.moon.show = false;
             this.scene.skyAtmosphere.show = true;
             // 光照配置
-            this.scene.globe.enableLighting = true;
+            this.scene.globe.enableLighting = false;
             // 时间系统配置
             this.clock.multiplier = 1;
             // 相机碰撞检测
