@@ -39,7 +39,7 @@
         baseLayer: DefaultTdtImg,
         fpsShow: true,
         mapboxController: true,
-        terrain: DefaultTerrain,
+        // terrain: DefaultTerrain,
       })
       initGui()
       let model
@@ -54,9 +54,10 @@
         const params = {
           message: "GUI面板-加载3DTiles",
           模型地址:
-            "https://app.larkview.cn/lkstationfile/projects/project_1468b9682b6e4b4198cbea2a6ae9b815/layers/model/会昌_倾斜摄影_20250905_1/tileset.json",
+            "https://map.larkview.cn/tileserver/api/tileset/beipiao_osgb_dccj/tileset.json",
           显示模型: false,
           阴影光源: true,
+          监视器: false,
         }
         const gui = new dat.GUI({ autoPlace: false })
         const customContainer = document.getElementById("gui-box")
@@ -70,6 +71,10 @@
         const boolLight = gui.add(params, "阴影光源")
         boolLight.onFinishChange((bool) => {
           viewer.lightShadow = bool
+        })
+        const boolDebug = gui.add(params, "监视器")
+        boolDebug.onFinishChange((bool) => {
+          viewer.Layers.TilesModel.inspectorGUI = bool
         })
       }
     </script>

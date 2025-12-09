@@ -56,7 +56,7 @@ export function PointEntityAdd(
     const point = viewer.entities.add({
       parent,
       id: option.id,
-      name: "Point",
+      name: "Point-Add",
       position: position,
       point: option,
     })

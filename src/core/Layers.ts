@@ -4,7 +4,7 @@ import {
   removeLayer,
 } from "src/utils/layers/Layers"
 import Viewer from "./Viewer"
-import { Add } from "./layers/AddCreator"
+import { Add, Creator } from "./layers/AddCreator"
 import TilesModel from "./layers/TilesModel"
 
 class Layers {
@@ -20,6 +20,12 @@ class Layers {
    * @type {Add}
    */
   public Add: Add = new Add(this.viewer)
+
+  /**
+   * 图层-创建对象类
+   * @type {Creator}
+   */
+  public Creator: Creator = new Creator(this.viewer)
 
   /**
    * 模型图层对象类

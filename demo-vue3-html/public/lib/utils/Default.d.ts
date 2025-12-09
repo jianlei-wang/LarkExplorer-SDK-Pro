@@ -1,26 +1,9 @@
 export declare const CesiumIcon = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJiYjUwNWQyOC0yZmZhLTRmMzItOTQyZC02ZmQyMWIyMTA3NmEiLCJpZCI6NjcyNzcsImlhdCI6MTY2ODE1ODc2Mn0.t1h6-ZADkGnZUZZoLtrlgtTp8_MR2Kxfhew42ksDgmk";
 export declare const TDT_KEY = "51f791b33368bb3935997fa43031a7ec";
-export declare const DEF_3DTILES_OPTION: {
-    skipLevelOfDetail: boolean;
-    preferLeaves: boolean;
-    maximumMemoryUsage: number;
-    baseScreenSpaceError: number;
-    maximumScreenSpaceError: number;
-    skipScreenSpaceErrorFactor: number;
-    skipLevels: number;
-    immediatelyLoadDesiredLevelOfDetail: boolean;
-    loadSiblings: boolean;
-    cullWithChildrenBounds: boolean;
-    cullRequestsWhileMoving: boolean;
-    cullRequestsWhileMovingMultiplier: number;
-    preloadWhenHidden: boolean;
-    progressiveResolutionHeightFraction: number;
-    dynamicScreenSpaceErrorDensity: number;
-    dynamicScreenSpaceErrorFactor: number;
-    dynamicScreenSpaceError: boolean;
-};
+export declare const DEF_3DTILES_OPTION: {};
 export declare const DEF_HPR: {
     heading: number;
     pitch: number;
     roll: number;
 };
+export declare const DEF_POINT_IMG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAYAAAA7MK6iAAABU0lEQVR4AeyUT0rDUBDGv0mh+XeDiph26VlcuNITWHWhKHgNUXSh1hPoyoVn0ZU0KvYG+VdIxkwrXQh9nQfVbjIwjwkz+X7hy/AcrCga8L8Z31jdWP1nDlgvV7IedNLIPck2vEEWeTdJ5PW5g8D2C63Aadc9olb1BdAFE/YYOCDgLmt7Sdr1d2ARarBAwXQ1V5v5IYna23P7vxoqsNhrhP6IEpxzKEMFplaptbGX9NwtDVsHZtrUiMkMV45qVgUWQW06hHrnFk+rwEz8slhqOsFl9TqtzKcOXLYezTKz7lv4UTzPngyFChx+piMQHxt0Ji1GdTYpFIcKLDrBsLg2wol2w3j8JLOaVINFTOBcOmsAnxLjvr61butN2vfHeRgMM+3vEClYgeUNsT2Ii0v/Pe/7cX4YxvmARkilZ5PWYBtx02wDNrmz1F5j9VLtNImtzOpvAAAA//+1zHtWAAAABklEQVQDAOm9XD2e9VbWAAAAAElFTkSuQmCC";

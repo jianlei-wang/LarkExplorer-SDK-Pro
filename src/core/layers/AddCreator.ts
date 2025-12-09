@@ -10,6 +10,10 @@ import { addWaters, WaterOptions } from "src/utils/create-add/WaterAdd"
 import WaterPrimitive, {
   WaterReflectionOption,
 } from "src/utils/layers/WaterPrimitive"
+import { PointCreate } from "src/utils/create-add/PointCreate"
+import { randomId, safeCallback } from "src/utils/Generate"
+import { geojsonPoints } from "src/utils/layers/Geojson"
+import { BillboardOption } from "../graphics/BillboardGraphics"
 
 class Add {
   /**
@@ -87,6 +91,67 @@ class Add {
   addWaterReflection(options: WaterReflectionOption) {
     return new WaterPrimitive(this.viewer, options)
   }
-}
 
-export { Add }
+  /**
+   * 加载Geojson
+   * @param type
+   * @param json
+   * @param options
+   */
+  addGeojson(
+    type: "Point" | "Polyline" | "Polygon",
+    json: string | object,
+    options: BillboardOption = {}
+  ) {
+    geojsonPoints(this.viewer, json, options)
+  }
+}
+class Creator {
+  private _editingId: string // 当前正在创建的对象ID
+  /**
+   * 图层-创建对象类
+   * @param  {Viewer} viewer 地图场景对象
+   */
+  constructor(private viewer: Viewer) {
+    this._editingId = ""
+  }
+
+  /**
+   * 初始化创建状态
+   */
+  private _initStatus() {
+    this._editingId != "" && this.viewer.Layers.removeById(this._editingId)
+    this.viewer.EventHandler.offEvents([
+      "leftClick",
+      "mouseMove",
+      "rightClick",
+      "leftDblClick",
+    ])
+  }
+
+  /**
+   * 创建点对象
+   * @param {PointOption} option - 点参数
+   * @param {Function} [callback] - 创建完成回调函数
+   */
+  createPoint(option: PointOption = {}, callback?: Function) {
+    this._initStatus()
+    this._updateOptID(option)
+    PointCreate(this.viewer, option, (point: any) => {
+      this._editingId = ""
+      safeCallback(callback, point)
+    })
+  }
+
+  /**
+   * 更新创建对象ID
+   * @param option
+   */
+  private _updateOptID(option: any) {
+    if (!option.id) {
+      option.id = "point-" + randomId()
+    }
+    this._editingId = option.id
+  }
+}
+export { Add, Creator }

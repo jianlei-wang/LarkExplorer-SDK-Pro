@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>015-地球自转</title>
+    <script src="./Cesium/Cesium.js"></script>
+    <link rel="stylesheet" href="./Cesium/Widgets/widgets.css" />
+    <script src="./lib/larkexplorer.umd.min.js"></script>
+    <script src="./dat.gui.min.js"></script>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+      }
+      #cesiumContainer {
+        width: 100%;
+        height: 100%;
+        position: relative;
+      }
+      #gui-box {
+        position: absolute;
+        left: 5px;
+        top: 5px;
+        z-index: 99;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="cesiumContainer">
+      <div id="gui-box"></div>
+    </div>
+    <script>
+      const { DefaultTdtImg } = LarkExplorer.BaseLayer
+      const viewer = new LarkExplorer.Viewer("cesiumContainer", {
+        baseLayer: DefaultTdtImg,
+        fpsShow: true,
+        mapboxController: true,
+      })
+      window.viewer = viewer
+      viewer.dataSources.add(Cesium.CzmlDataSource.load("./datas/simple.czml"))
+      initGui()
+      function initGui() {
+        const params = {
+          message: "GUI面板-地形设置",
+          自转: false,
+          转动速度: 2000,
+        }
+        const gui = new dat.GUI({ autoPlace: false })
+        const customContainer = document.getElementById("gui-box")
+        customContainer.appendChild(gui.domElement)
+        gui.add(params, "message")
+        const boolRotate = gui.add(params, "自转")
+        boolRotate.onFinishChange((bool) => rotate(bool))
+        const rotateStep = gui.add(params, "转动速度")
+        rotateStep.onFinishChange((step) => {
+          viewer.clock.multiplier = step
+        })
+      }
+      function rotate(bool) {
+        viewer.Navigation.rotation = bool
+      }
+    </script>
+  </body>
+</html>

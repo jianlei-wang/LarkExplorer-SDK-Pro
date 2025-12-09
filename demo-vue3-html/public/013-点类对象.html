@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>013-点类对象</title>
+    <script src="./Cesium/Cesium.js"></script>
+    <link rel="stylesheet" href="./Cesium/Widgets/widgets.css" />
+    <script src="./lib/larkexplorer.umd.min.js"></script>
+    <script src="./dat.gui.min.js"></script>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+      }
+      #cesiumContainer {
+        width: 100%;
+        height: 100%;
+        position: relative;
+      }
+      #gui-box {
+        position: absolute;
+        left: 5px;
+        top: 5px;
+        z-index: 99;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="cesiumContainer">
+      <div id="gui-box"></div>
+    </div>
+    <script>
+      const { DefaultTdtImg } = LarkExplorer.BaseLayer
+      const viewer = new LarkExplorer.Viewer("cesiumContainer", {
+        baseLayer: DefaultTdtImg,
+        fpsShow: true,
+        mapboxController: true,
+      })
+      function startEdit() {}
+      function endEdit() {}
+      initGui()
+      function initGui() {
+        const params = {
+          message: "态势标绘-点类对象",
+          开启编辑: false,
+          创建点: () => {
+            viewer.Layers.Creator.createPoint((point) => {
+              console.log("创建点完成", point)
+            })
+          },
+        }
+        const gui = new dat.GUI({ autoPlace: false })
+        const customContainer = document.getElementById("gui-box")
+        customContainer.appendChild(gui.domElement)
+        gui.add(params, "message")
+        gui.add(params, "创建点")
+        const boolEdit = gui.add(params, "开启编辑")
+        boolEdit.onFinishChange((bool) => {
+          bool ? startEdit() : endEdit()
+        })
+      }
+    </script>
+  </body>
+</html>

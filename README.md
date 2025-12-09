@@ -5,7 +5,7 @@
 `larkexplorer-sdk-pro` 是基于开源项目 `Cesium` 进行二次开发的二三维一体的 `WebGis` 应用框架，该框架优化了部分 `Cesium` 的使用方式并基于业务开发相应功能方法，旨在为开发者快速构建 `WebGis` 应用。
 
 ```warning
-Tips：本框架是 JS+GIS 的框架包。开发者需要有一定的前端技术和 GIS 相关技术
+Tips：本框架是 JS+GIS 的框架包。开发者需要有一定的前端技术和 GIS 相关技术，以下为老版SDK导航
 
 SDK下载地址（最新版本）：https://app.larkview.cn/larkexplorersdk/download/release/sdk.zip
 

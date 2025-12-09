@@ -1,5 +1,5 @@
 import Viewer from "./Viewer";
-import { Add } from "./layers/AddCreator";
+import { Add, Creator } from "./layers/AddCreator";
 import TilesModel from "./layers/TilesModel";
 declare class Layers {
     private viewer;
@@ -14,6 +14,11 @@ declare class Layers {
      * @type {Add}
      */
     Add: Add;
+    /**
+     * 图层-创建对象类
+     * @type {Creator}
+     */
+    Creator: Creator;
     /**
      * 模型图层对象类
      * @type {TilesModel}

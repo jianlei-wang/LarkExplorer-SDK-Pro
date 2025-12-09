@@ -1,6 +1,15 @@
 import { CameraStatus, DegreePos, ViewStatus } from "src/types"
 import Viewer from "./Viewer"
-import { Cartesian3, clone } from "cesium"
+import {
+  Cartesian3,
+  clone,
+  defined,
+  JulianDate,
+  Matrix4,
+  Scene,
+  SceneMode,
+  Transforms,
+} from "cesium"
 import { transformCartesianToWGS84 } from "src/utils/Coordinate"
 import {
   flyToDegree,
@@ -15,6 +24,7 @@ import AroundPoint from "./AroundPoint"
 
 class Navigation {
   private _homeCamera: CameraStatus
+  private _rotation: Boolean
   /**
    * 导航主类
    * @param {Object} viewer 地图场景对象
@@ -29,6 +39,7 @@ class Navigation {
       ),
       hpr: { heading: 6.283185307179586, pitch: -1.5691401107287417, roll: 0 },
     }
+    this._rotation = false
   }
   /**
    * 获取/设置初始视角
@@ -39,6 +50,25 @@ class Navigation {
   }
   set homeCamera(cameraStatus: CameraStatus) {
     this._homeCamera = clone(cameraStatus, true)
+  }
+
+  /**
+   * 地球自转状态
+   * @type {Boolean}
+   */
+  get rotation() {
+    return this._rotation
+  }
+  set rotation(bool: Boolean) {
+    const { clock, scene } = this.viewer
+    if (bool) {
+      clock.multiplier = 2000
+      scene.postUpdate.addEventListener(this.icrf, this)
+    } else {
+      clock.multiplier = 1.0
+      scene.postUpdate.removeEventListener(this.icrf, this)
+      this.viewer.camera.lookAtTransform(Matrix4.IDENTITY)
+    }
   }
 
   /**
@@ -173,6 +203,23 @@ class Navigation {
       distance
     )
     return aroundPoint
+  }
+
+  icrf() {
+    if (this.viewer.scene.mode !== SceneMode.SCENE3D) {
+      return true
+    }
+
+    const icrfToFixed = Transforms.computeIcrfToFixedMatrix(
+      this.viewer.clock.currentTime
+    )
+
+    if (defined(icrfToFixed)) {
+      const camera = this.viewer.camera
+      const offset = Cartesian3.clone(camera.position)
+      const transform = Matrix4.fromRotationTranslation(icrfToFixed)
+      camera.lookAtTransform(transform, offset)
+    }
   }
 }
 export default Navigation

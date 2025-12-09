@@ -5,20 +5,37 @@ import {
 } from "src/utils/layers/3DTiles"
 import Viewer from "../Viewer"
 import { DegreePos } from "src/types"
-import { Cesium3DTileset } from "cesium"
+import { Cesium3DTileset, viewerCesium3DTilesInspectorMixin } from "cesium"
 import Flatten from "./3dtiles/Flatten"
 
 class TilesModel {
+  private _inspector: boolean
   /**
    * 模型主类
    * @param {Viewer} viewer - 地图场景对象
    */
-  constructor(private viewer: Viewer) {}
+  constructor(private viewer: Viewer) {
+    this._inspector = false
+  }
   /**
    * 模型压平类
    */
   public Flatten = Flatten
-  
+
+  /**
+   * 控制3Dtiles调试面板
+   * @type {Boolean}
+   */
+  get inspectorGUI() {
+    return this._inspector
+  }
+  set inspectorGUI(show: boolean) {
+    this._inspector = show
+    show
+      ? this.viewer.extend(viewerCesium3DTilesInspectorMixin)
+      : console.log("关闭")
+  }
+
   /**
    * 加载3Dtiles模型
    * @param {string} url - 模型地址

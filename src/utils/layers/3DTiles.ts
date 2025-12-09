@@ -29,6 +29,7 @@ export async function load3Dtiles(
   })
   height && offsetHeight(model, height)
   model = viewer.scene.primitives.add(model)
+  // model.skipLevelOfDetail = true
   SetCusMark(model, "primitive", "3dtiles", true)
   return model
 }

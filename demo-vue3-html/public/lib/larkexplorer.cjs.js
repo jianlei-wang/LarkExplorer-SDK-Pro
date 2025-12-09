@@ -232,23 +232,23 @@ var CesiumIcon = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJiYjUwNWQyOC0yZ
 var TDT_KEY = "51f791b33368bb3935997fa43031a7ec";
 // 3DTiles模型默认参数
 var DEF_3DTILES_OPTION = {
-    skipLevelOfDetail: true,
-    preferLeaves: true,
-    maximumMemoryUsage: 256, // 内存分配变小有利于倾斜摄影数据回收，提升性能体验
-    baseScreenSpaceError: 256,
-    maximumScreenSpaceError: 16, // 数值加大，能让最终成像变模糊
-    skipScreenSpaceErrorFactor: 16,
-    skipLevels: 2, //lod级别加载
-    immediatelyLoadDesiredLevelOfDetail: true,
-    loadSiblings: true, // 如果为true则不会在已加载完概况房屋后，自动从中心开始超清化房屋
-    cullWithChildrenBounds: true,
-    cullRequestsWhileMoving: true,
-    cullRequestsWhileMovingMultiplier: 1, // 值越小能够更快的剔除
-    preloadWhenHidden: true,
-    progressiveResolutionHeightFraction: 1, // 数值偏于0能够让初始加载变得模糊
-    dynamicScreenSpaceErrorDensity: 1, // 数值加大，能让周边加载变快
-    dynamicScreenSpaceErrorFactor: 1, // 暂时未知作用
-    dynamicScreenSpaceError: true, // 根据测试，有了这个后，会在真正的全屏加载完之后才清晰化房屋
+// skipLevelOfDetail: false, // 如果为true，初始的时候不会一次性加载整个模型，建议加载后手动开启，
+// preferLeaves: false,
+// maximumMemoryUsage: 256, // 内存分配变小有利于倾斜摄影数据回收，提升性能体验
+// baseScreenSpaceError: 256,
+// maximumScreenSpaceError: 16, // 数值加大，能让最终成像变模糊
+// skipScreenSpaceErrorFactor: 16,
+// skipLevels: 1, //lod级别加载
+// immediatelyLoadDesiredLevelOfDetail: true,
+// loadSiblings: false, // 如果为true则不会在已加载完概况房屋后，自动从中心开始超清化房屋
+// cullWithChildrenBounds: true,
+// cullRequestsWhileMoving: true,
+// cullRequestsWhileMovingMultiplier: 1, // 值越小能够更快的剔除
+// preloadWhenHidden: true,
+// progressiveResolutionHeightFraction: 1, // 数值偏于0能够让初始加载变得模糊
+// dynamicScreenSpaceErrorDensity: 1, // 数值加大，能让周边加载变快
+// dynamicScreenSpaceErrorFactor: 1, // 暂时未知作用
+// dynamicScreenSpaceError: true, // 根据测试，有了这个后，会在真正的全屏加载完之后才清晰化房屋
 };
 // 默认欧拉角
 var DEF_HPR = {
@@ -256,6 +256,8 @@ var DEF_HPR = {
     pitch: -1.5693096181732886,
     roll: 0,
 };
+// 默认点图标
+var DEF_POINT_IMG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAYAAAA7MK6iAAABU0lEQVR4AeyUT0rDUBDGv0mh+XeDiph26VlcuNITWHWhKHgNUXSh1hPoyoVn0ZU0KvYG+VdIxkwrXQh9nQfVbjIwjwkz+X7hy/AcrCga8L8Z31jdWP1nDlgvV7IedNLIPck2vEEWeTdJ5PW5g8D2C63Aadc9olb1BdAFE/YYOCDgLmt7Sdr1d2ARarBAwXQ1V5v5IYna23P7vxoqsNhrhP6IEpxzKEMFplaptbGX9NwtDVsHZtrUiMkMV45qVgUWQW06hHrnFk+rwEz8slhqOsFl9TqtzKcOXLYezTKz7lv4UTzPngyFChx+piMQHxt0Ji1GdTYpFIcKLDrBsLg2wol2w3j8JLOaVINFTOBcOmsAnxLjvr61butN2vfHeRgMM+3vEClYgeUNsT2Ii0v/Pe/7cX4YxvmARkilZ5PWYBtx02wDNrmz1F5j9VLtNImtzOpvAAAA//+1zHtWAAAABklEQVQDAOm9XD2e9VbWAAAAAElFTkSuQmCC";
 
 var globeImg = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAYAAAADCAYAAACwAX77AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsQAAA7EAZUrDhsAAABWSURBVBhXAUsAtP8BY3Z+/z0sAwCsygIAFAjlACUQ/QDV7QsAAQdAZP8iGv8ACQL/AFkrFQCg1fUA//4DAAE/XXH/HRcWAOPr7QATEhMADwwMAP389wC1nxmQIMsw2wAAAABJRU5ErkJggg==";
 
@@ -777,6 +779,7 @@ function load3Dtiles(viewer, url, height) {
                     });
                     height && offsetHeight(model, height);
                     model = viewer.scene.primitives.add(model);
+                    // model.skipLevelOfDetail = true
                     SetCusMark(model, "primitive", "3dtiles", true);
                     return [2 /*return*/, model];
             }
@@ -1307,7 +1310,7 @@ function PointEntityAdd(viewer, positions, options) {
         var point = viewer.entities.add({
             parent: parent,
             id: option.id,
-            name: "Point",
+            name: "Point-Add",
             position: position,
             point: option,
         });
@@ -2056,6 +2059,191 @@ var WaterPrimitive = /** @class */ (function () {
     return WaterPrimitive;
 }());
 
+/**
+ * 创建点对象
+ * @param viewer
+ * @param option
+ * @param callback
+ */
+function PointCreate(viewer, option, callback) {
+    var point;
+    viewer.ReminderTip.message = "左键点击地图添加点对象，右键结束添加";
+    viewer.ReminderTip.show = true;
+    viewer.EventHandler.on("leftClick", function (e) {
+        var pixPos = e.position;
+        var cartesian = getCatesian3FromPX(viewer, pixPos);
+        if (!cartesian)
+            return;
+        if (point) {
+            point.position = new Cesium.ConstantPositionProperty(cartesian);
+        }
+        else {
+            option = new PointGraphic(option).value;
+            point = viewer.entities.add({
+                id: option.id,
+                name: "Point-Create",
+                position: cartesian,
+                point: option,
+            });
+        }
+    });
+    viewer.EventHandler.on("rightClick", function () {
+        viewer.EventHandler.offEvents(["leftClick", "rightClick"]);
+        viewer.ReminderTip.show = false;
+        safeCallback(callback, point);
+    });
+}
+
+/**
+ * 广告版几何属性参数类
+ * @extends Cesium.BillboardGraphics
+ * @param {BillboardOption} [options] - 广告版集合属性参数选项
+ */
+var BillboardGraphic = /** @class */ (function (_super) {
+    __extends(BillboardGraphic, _super);
+    function BillboardGraphic(options) {
+        if (options === void 0) { options = {}; }
+        var _this = _super.call(this) || this;
+        _this.merge(options);
+        var onGround = options.onGround, allowPick = options.allowPick, id = options.id, _a = options.featureAttribute, featureAttribute = _a === void 0 ? {} : _a, image = options.image, verticalOrigin = options.verticalOrigin;
+        _this._onGround = onGround;
+        _this.updateHr(_this._onGround);
+        _this._allowPick = new Cesium.ConstantProperty(allowPick);
+        _this._id = id || randomId();
+        _this._featureAttribute = new Cesium.ConstantProperty(__assign({ id: _this._id }, featureAttribute));
+        _this.image = new Cesium.ConstantProperty(image || DEF_POINT_IMG);
+        _this.verticalOrigin = new Cesium.ConstantProperty(verticalOrigin || Cesium.VerticalOrigin.BOTTOM);
+        return _this;
+    }
+    Object.defineProperty(BillboardGraphic.prototype, "value", {
+        /**
+         * 广告版几何属性参数值
+         */
+        get: function () {
+            var _a = this, onGround = _a.onGround, allowPick = _a.allowPick, id = _a.id, featureAttribute = _a.featureAttribute, color = _a.color, heightReference = _a.heightReference, scaleByDistance = _a.scaleByDistance, show = _a.show, splitDirection = _a.splitDirection, translucencyByDistance = _a.translucencyByDistance, disableDepthTestDistance = _a.disableDepthTestDistance, distanceDisplayCondition = _a.distanceDisplayCondition, width = _a.width, height = _a.height, image = _a.image, verticalOrigin = _a.verticalOrigin, horizontalOrigin = _a.horizontalOrigin;
+            var props = {
+                onGround: onGround,
+                allowPick: allowPick,
+                id: id,
+                featureAttribute: featureAttribute,
+                color: color,
+                heightReference: heightReference,
+                scaleByDistance: scaleByDistance,
+                show: show,
+                splitDirection: splitDirection,
+                translucencyByDistance: translucencyByDistance,
+                disableDepthTestDistance: disableDepthTestDistance,
+                distanceDisplayCondition: distanceDisplayCondition,
+                width: width,
+                height: height,
+                image: image,
+                verticalOrigin: verticalOrigin,
+                horizontalOrigin: horizontalOrigin,
+            };
+            var result = {};
+            for (var key in props) {
+                var prop = props[key];
+                if (prop && typeof prop.getValue === "function") {
+                    var value = prop.getValue();
+                    if (value !== undefined && value !== null) {
+                        result[key] = value;
+                    }
+                }
+                else if (prop !== undefined && prop !== null) {
+                    result[key] = prop;
+                }
+            }
+            return result;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(BillboardGraphic.prototype, "id", {
+        /**
+         * 广告版唯一id
+         */
+        get: function () {
+            return this._id;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(BillboardGraphic.prototype, "onGround", {
+        /**
+         * 广告版贴地设置
+         */
+        get: function () {
+            return this._onGround;
+        },
+        set: function (bool) {
+            this._onGround = bool;
+            this.updateHr(bool);
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(BillboardGraphic.prototype, "allowPick", {
+        /**
+         * 广告版对象点选设置
+         */
+        get: function () {
+            return this._allowPick.getValue();
+        },
+        set: function (bool) {
+            this._allowPick = new Cesium.ConstantProperty(bool);
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(BillboardGraphic.prototype, "featureAttribute", {
+        /**
+         * 广告版对象属性表
+         */
+        get: function () {
+            return this._featureAttribute;
+        },
+        set: function (val) {
+            this._featureAttribute = new Cesium.ConstantProperty(val);
+        },
+        enumerable: false,
+        configurable: true
+    });
+    BillboardGraphic.prototype.updateHr = function (bool) {
+        this.heightReference = bool
+            ? new Cesium.ConstantProperty(Cesium.HeightReference.CLAMP_TO_GROUND)
+            : new Cesium.ConstantProperty(Cesium.HeightReference.NONE);
+    };
+    return BillboardGraphic;
+}(Cesium.BillboardGraphics));
+
+function geojsonPoints(viewer, geojson, options, filterOption) {
+    console.time("pointTime");
+    var billboardCollection = viewer.scene.primitives.add(new Cesium.BillboardCollection());
+    console.log(options);
+    var defOpt = new BillboardGraphic(options);
+    console.log(defOpt.value);
+    Cesium.GeoJsonDataSource.load(geojson)
+        .then(function (data) {
+        console.log("加载数据：", data);
+        var points = data.entities.values.slice(0, 100);
+        for (var index = 0; index < points.length; index++) {
+            var position = points[index].position;
+            if (Cesium.defined(position)) {
+                var pos = position.getValue(Cesium.JulianDate.now());
+                billboardCollection.add(__assign({ position: pos }, defOpt.value));
+            }
+        }
+        console.timeEnd("pointTime");
+    })
+        .catch(function (err) {
+        console.log("加载失败！！");
+        throw new Error(err);
+    })
+        .finally(function () {
+        console.log("加载成功！！");
+    });
+}
+
 var Add = /** @class */ (function () {
     /**
      * 图层-添加对象类
@@ -2140,7 +2328,65 @@ var Add = /** @class */ (function () {
     Add.prototype.addWaterReflection = function (options) {
         return new WaterPrimitive(this.viewer, options);
     };
+    /**
+     * 加载Geojson
+     * @param type
+     * @param json
+     * @param options
+     */
+    Add.prototype.addGeojson = function (type, json, options) {
+        if (options === void 0) { options = {}; }
+        geojsonPoints(this.viewer, json, options);
+    };
     return Add;
+}());
+var Creator = /** @class */ (function () {
+    /**
+     * 图层-创建对象类
+     * @param  {Viewer} viewer 地图场景对象
+     */
+    function Creator(viewer) {
+        this.viewer = viewer;
+        this._editingId = "";
+    }
+    /**
+     * 初始化创建状态
+     */
+    Creator.prototype._initStatus = function () {
+        this._editingId != "" && this.viewer.Layers.removeById(this._editingId);
+        this.viewer.EventHandler.offEvents([
+            "leftClick",
+            "mouseMove",
+            "rightClick",
+            "leftDblClick",
+        ]);
+    };
+    /**
+     * 创建点对象
+     * @param {PointOption} option - 点参数
+     * @param {Function} [callback] - 创建完成回调函数
+     */
+    Creator.prototype.createPoint = function (option, callback) {
+        var _this = this;
+        if (option === void 0) { option = {}; }
+        this._initStatus();
+        this._updateOptID(option);
+        PointCreate(this.viewer, option, function (point) {
+            _this._editingId = "";
+            safeCallback(callback, point);
+        });
+    };
+    /**
+     * 更新创建对象ID
+     * @param option
+     */
+    Creator.prototype._updateOptID = function (option) {
+        if (!option.id) {
+            option.id = "point-" + randomId();
+        }
+        this._editingId = option.id;
+    };
+    return Creator;
 }());
 
 var Flatten = /** @class */ (function () {
@@ -2313,7 +2559,25 @@ var TilesModel = /** @class */ (function () {
          * 模型压平类
          */
         this.Flatten = Flatten;
+        this._inspector = false;
     }
+    Object.defineProperty(TilesModel.prototype, "inspectorGUI", {
+        /**
+         * 控制3Dtiles调试面板
+         * @type {Boolean}
+         */
+        get: function () {
+            return this._inspector;
+        },
+        set: function (show) {
+            this._inspector = show;
+            show
+                ? this.viewer.extend(Cesium.viewerCesium3DTilesInspectorMixin)
+                : console.log("关闭");
+        },
+        enumerable: false,
+        configurable: true
+    });
     /**
      * 加载3Dtiles模型
      * @param {string} url - 模型地址
@@ -2379,6 +2643,11 @@ var Layers = /** @class */ (function () {
          * @type {Add}
          */
         this.Add = new Add(this.viewer);
+        /**
+         * 图层-创建对象类
+         * @type {Creator}
+         */
+        this.Creator = new Creator(this.viewer);
         /**
          * 模型图层对象类
          * @type {TilesModel}
@@ -2570,6 +2839,7 @@ var Navigation = /** @class */ (function () {
             position: new Cesium.Cartesian3(-2453733.1395831853, 10818816.243349865, 7649756.401418009),
             hpr: { heading: 6.283185307179586, pitch: -1.5691401107287417, roll: 0 },
         };
+        this._rotation = false;
     }
     Object.defineProperty(Navigation.prototype, "homeCamera", {
         /**
@@ -2581,6 +2851,29 @@ var Navigation = /** @class */ (function () {
         },
         set: function (cameraStatus) {
             this._homeCamera = Cesium.clone(cameraStatus, true);
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Navigation.prototype, "rotation", {
+        /**
+         * 地球自转状态
+         * @type {Boolean}
+         */
+        get: function () {
+            return this._rotation;
+        },
+        set: function (bool) {
+            var _a = this.viewer, clock = _a.clock, scene = _a.scene;
+            if (bool) {
+                clock.multiplier = 2000;
+                scene.postUpdate.addEventListener(this.icrf, this);
+            }
+            else {
+                clock.multiplier = 1.0;
+                scene.postUpdate.removeEventListener(this.icrf, this);
+                this.viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
+            }
         },
         enumerable: false,
         configurable: true
@@ -2709,7 +3002,134 @@ var Navigation = /** @class */ (function () {
         var aroundPoint = new AroundPoint(this.viewer, Cesium.Cartesian3.fromDegrees(x, y, z), angle, time, distance);
         return aroundPoint;
     };
+    Navigation.prototype.icrf = function () {
+        if (this.viewer.scene.mode !== Cesium.SceneMode.SCENE3D) {
+            return true;
+        }
+        var icrfToFixed = Cesium.Transforms.computeIcrfToFixedMatrix(this.viewer.clock.currentTime);
+        if (Cesium.defined(icrfToFixed)) {
+            var camera = this.viewer.camera;
+            var offset = Cesium.Cartesian3.clone(camera.position);
+            var transform = Cesium.Matrix4.fromRotationTranslation(icrfToFixed);
+            camera.lookAtTransform(transform, offset);
+        }
+    };
     return Navigation;
+}());
+
+var Heatmap3D = /** @class */ (function () {
+    function Heatmap3D(viewer) {
+        this.viewer = viewer;
+    }
+    Heatmap3D.prototype.test = function () {
+        alert("Heatmap3D test()");
+    };
+    return Heatmap3D;
+}());
+
+var SpecialAnalysis = /** @class */ (function () {
+    function SpecialAnalysis(viewer) {
+        this.viewer = viewer;
+        this.Heatmap3D = Heatmap3D;
+    }
+    return SpecialAnalysis;
+}());
+
+var ReminderTip = /** @class */ (function () {
+    /**
+     * 鼠标提示弹窗tip
+     * @param {Viewer} viewer 地图场景
+     * @param {string} [id="sdk-reminder-tip"] 元素对象id
+     */
+    function ReminderTip(viewer, id) {
+        if (id === void 0) { id = "sdk-reminder-tip"; }
+        this.viewer = viewer;
+        this.id = id;
+        this._viewEl =
+            this.viewer.container.getElementsByClassName("cesium-viewer")[0];
+        this._message = "";
+        this._isShow = false;
+        // 绑定事件处理函数，确保在移除时是同一个引用
+        this._tipEvent = this._handleMouseMove.bind(this);
+        var domObj = document.getElementById(this.id);
+        this._tipEl = domObj || this.initTipEl(this.id);
+    }
+    Object.defineProperty(ReminderTip.prototype, "show", {
+        /**
+         * 是否显示提示框
+         * @type {boolean}
+         */
+        get: function () {
+            return this._isShow;
+        },
+        set: function (bool) {
+            bool ? this.showTip() : this.hideTip();
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(ReminderTip.prototype, "message", {
+        /**
+         * 提示内容
+         * @type {string}
+         */
+        get: function () {
+            return this._message;
+        },
+        set: function (str) {
+            this._message = str;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    /**
+     * 初始化元素
+     * @param id
+     * @returns
+     */
+    ReminderTip.prototype.initTipEl = function (id) {
+        var elementbottom = document.createElement("div");
+        this._viewEl.append(elementbottom);
+        var html = "<div id=\"".concat(id, "\" style=\"display: none;pointer-events: none;position: absolute;z-index: 1000;opacity: 0.8;border-radius: 4px;padding: 4px 8px;white-space: nowrap;font-family:\u9ED1\u4F53;color:white;font-weight: bolder;font-size: 14px;background: #000000cc;color: white\"></div>");
+        this._viewEl.insertAdjacentHTML("beforeend", html);
+        var domEl = document.getElementById(id);
+        return domEl;
+    };
+    /**
+     * 显示提示框
+     */
+    ReminderTip.prototype.showTip = function () {
+        this._isShow = true;
+        this._viewEl.addEventListener("mousemove", this._tipEvent);
+    };
+    /**
+     * 清除提示框
+     */
+    ReminderTip.prototype.hideTip = function () {
+        this._isShow = false;
+        this._tipEvent &&
+            this._viewEl.removeEventListener("mousemove", this._tipEvent);
+        this._createTip({ x: 0, y: 0 }, false);
+        this._message = "";
+    };
+    /**
+     * 鼠标移动事件处理
+     */
+    ReminderTip.prototype._handleMouseMove = function (e) {
+        this._createTip({ x: e.clientX, y: e.clientY }, true);
+    };
+    /**
+     * 创建提示
+     * @param position
+     * @param show
+     */
+    ReminderTip.prototype._createTip = function (position, show) {
+        this._tipEl.innerHTML = this._message;
+        this._tipEl.style.left = position.x + 15 + "px";
+        this._tipEl.style.top = position.y + 20 + "px";
+        this._tipEl.style.display = show ? "block" : "none";
+    };
+    return ReminderTip;
 }());
 
 // 设置默认相机观察范围（覆盖Cesium默认设置）
@@ -2771,6 +3191,16 @@ var Viewer = /** @class */ (function (_super) {
          * @type {Navigation}
          */
         _this.Navigation = new Navigation(_this);
+        /**
+         * 空间分析主类
+         * @type {SpecialAnalysis}
+         */
+        _this.SpecialAnalysis = new SpecialAnalysis(_this);
+        /**
+         * 鼠标提示主类
+         * @type {SpecialAnalysis}
+         */
+        _this.ReminderTip = new ReminderTip(_this);
         _this.initBaseConfig();
         return _this;
     }
@@ -2920,14 +3350,15 @@ var PointGraphic = /** @class */ (function (_super) {
         if (options === void 0) { options = {}; }
         var _this = _super.call(this) || this;
         _this.merge(options);
-        var onGround = options.onGround, pColor = options.pColor, pOutlineColor = options.pOutlineColor, allowPick = options.allowPick, id = options.id, _a = options.featureAttribute, featureAttribute = _a === void 0 ? {} : _a;
-        _this._onGround = onGround || true;
+        var onGround = options.onGround, pColor = options.pColor, pOutlineColor = options.pOutlineColor, allowPick = options.allowPick, id = options.id, _a = options.pixelSize, pixelSize = _a === void 0 ? 15 : _a, _b = options.featureAttribute, featureAttribute = _b === void 0 ? {} : _b;
+        _this.pixelSize = new Cesium.ConstantProperty(pixelSize);
+        _this._onGround = onGround;
         _this.updateHr(_this._onGround);
         _this._pColor = pColor || "#ff0000";
         _this.updateColor(_this._pColor);
         _this._pOutlineColor = pOutlineColor || "#ffff00";
         _this.updateOutlineColor(_this._pOutlineColor);
-        _this._allowPick = new Cesium.ConstantProperty(allowPick || true);
+        _this._allowPick = new Cesium.ConstantProperty(allowPick);
         _this._id = id || randomId();
         _this._featureAttribute = new Cesium.ConstantProperty(__assign({ id: _this._id }, featureAttribute));
         _this.show = new Cesium.ConstantProperty(true);
@@ -3056,8 +3487,8 @@ var PointGraphic = /** @class */ (function (_super) {
     });
     PointGraphic.prototype.updateHr = function (bool) {
         this.heightReference = bool
-            ? new Cesium.ConstantProperty(Cesium.HeightReference.CLAMP_TO_GROUND).getValue()
-            : new Cesium.ConstantProperty(Cesium.HeightReference.NONE).getValue();
+            ? new Cesium.ConstantProperty(Cesium.HeightReference.CLAMP_TO_GROUND)
+            : new Cesium.ConstantProperty(Cesium.HeightReference.NONE);
     };
     PointGraphic.prototype.updateColor = function (color) {
         this.color = new Cesium.ConstantProperty(Cesium.Color.fromCssColorString(color)).getValue();
@@ -3073,6 +3504,7 @@ var Screen = /*#__PURE__*/Object.freeze({
 });
 
 exports.BaseLayer = BaseLayer;
+exports.BillboardGraphics = BillboardGraphic;
 exports.Coordinates = Coordinate;
 exports.EventNameMap = EventNameMap;
 exports.PointGraphics = PointGraphic;

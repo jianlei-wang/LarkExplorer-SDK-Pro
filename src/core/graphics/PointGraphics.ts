@@ -12,7 +12,7 @@ import { randomId } from "src/utils/Generate"
  * @property {boolean} [allowPick=true] - 是否支持点选
  * @property {Cesium.Color} [color=Cesium.Color.RED] - 指定点颜色的属性
  * @property {Cesium.Color} [outlineColor=Cesium.Color.YELLOW] -	指定轮廓颜色的属性
- * @property {number} [pixelSize=1] - 指定大小（以像素为单位）的数字属性
+ * @property {number} [pixelSize=15] - 指定大小（以像素为单位）的数字属性
  * @property {number} [outlineWidth=0] - 指定轮廓宽度（以像素为单位）的数字属性
  * @property {Cesium.HeightReference} [heightReference=HeightReference.RELATIVE_TO_GROUND] - 指定高度相对于什么的属性
  * @property {Cesium.NearFarScalar} [scaleByDistance] - 用于根据距离缩放点
@@ -32,7 +32,7 @@ export interface PointOption extends PointGraphics.ConstructorOptions {
 }
 
 class PointGraphic extends PointGraphics {
-  private _onGround: boolean
+  private _onGround: boolean | undefined
   private _pColor: string
   private _pOutlineColor: string
   private _allowPick: ConstantProperty
@@ -53,15 +53,17 @@ class PointGraphic extends PointGraphics {
       pOutlineColor,
       allowPick,
       id,
+      pixelSize = 15,
       featureAttribute = {},
     } = options
-    this._onGround = onGround || true
+    this.pixelSize = new ConstantProperty(pixelSize)
+    this._onGround = onGround
     this.updateHr(this._onGround)
     this._pColor = pColor || "#ff0000"
     this.updateColor(this._pColor)
     this._pOutlineColor = pOutlineColor || "#ffff00"
     this.updateOutlineColor(this._pOutlineColor)
-    this._allowPick = new ConstantProperty(allowPick || true)
+    this._allowPick = new ConstantProperty(allowPick)
     this._id = id || randomId()
     this._featureAttribute = new ConstantProperty({
       id: this._id,
@@ -139,7 +141,7 @@ class PointGraphic extends PointGraphics {
   get onGround() {
     return this._onGround
   }
-  set onGround(bool: boolean) {
+  set onGround(bool: boolean | undefined) {
     this._onGround = bool
     this.updateHr(bool)
   }
@@ -186,10 +188,10 @@ class PointGraphic extends PointGraphics {
     this._featureAttribute = new ConstantProperty(val)
   }
 
-  updateHr(bool: boolean) {
+  updateHr(bool: boolean | undefined) {
     this.heightReference = bool
-      ? new ConstantProperty(HeightReference.CLAMP_TO_GROUND).getValue()
-      : new ConstantProperty(HeightReference.NONE).getValue()
+      ? new ConstantProperty(HeightReference.CLAMP_TO_GROUND)
+      : new ConstantProperty(HeightReference.NONE)
   }
 
   updateColor(color: string) {

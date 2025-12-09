@@ -7,6 +7,8 @@ import Terrain from "./Terrain"
 import Layers from "./Layers"
 import Handler from "./Handler"
 import Navigation from "./Navigation"
+import SpecialAnalysis from "./SpecialAnalysis"
+import ReminderTip from "./PopupTip/ReminderTip"
 
 // 设置默认相机观察范围（覆盖Cesium默认设置）
 Cesium.Camera.DEFAULT_VIEW_RECTANGLE = new Cesium.Rectangle(
@@ -112,6 +114,17 @@ class Viewer extends Cesium.Viewer {
    */
   public Navigation: Navigation = new Navigation(this)
 
+  /**
+   * 空间分析主类
+   * @type {SpecialAnalysis}
+   */
+  public SpecialAnalysis: SpecialAnalysis = new SpecialAnalysis(this)
+
+  /**
+   * 鼠标提示主类
+   * @type {SpecialAnalysis}
+   */
+  public ReminderTip = new ReminderTip(this)
   /**
    * 初始化基础场景配置
    * @private
@@ -242,5 +255,6 @@ class Viewer extends Cesium.Viewer {
     baseLayer && this.imageryLayers.remove(baseLayer)
     this.imageryLayers.lowerToBottom(imagery)
   }
+  
 }
 export default Viewer

@@ -4,6 +4,8 @@ import Terrain from "./Terrain";
 import Layers from "./Layers";
 import Handler from "./Handler";
 import Navigation from "./Navigation";
+import SpecialAnalysis from "./SpecialAnalysis";
+import ReminderTip from "./PopupTip/ReminderTip";
 /**
  * 地图场景配置扩展接口
  * @interface
@@ -59,6 +61,16 @@ declare class Viewer extends Cesium.Viewer {
      * @type {Navigation}
      */
     Navigation: Navigation;
+    /**
+     * 空间分析主类
+     * @type {SpecialAnalysis}
+     */
+    SpecialAnalysis: SpecialAnalysis;
+    /**
+     * 鼠标提示主类
+     * @type {SpecialAnalysis}
+     */
+    ReminderTip: ReminderTip;
     /**
      * 初始化基础场景配置
      * @private

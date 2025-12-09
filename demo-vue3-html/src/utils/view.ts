@@ -25,6 +25,7 @@ const treeDatas = [
     label: "地图事件",
     children: [
       { id: "002", label: "鼠标事件" },
+      { id: "012", label: "鼠标提示" },
       { id: "004", label: "对象拾取" },
     ],
   },
@@ -33,9 +34,11 @@ const treeDatas = [
     label: "地图图层",
     children: [
       { id: "007", label: "添加点" },
+      { id: "013", label: "点类对象" },
       { id: "008", label: "加载3DTiles" },
       { id: "010", label: "动态水面" },
       { id: "011", label: "动态水面（带倒影）" },
+      { id: "014", label: "Geojson加载" },
     ],
   },
 

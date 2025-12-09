@@ -1,9 +1,9 @@
 {
   "name": "larkexplorer-sdk-pro",
-  "version": "0.0.43",
-  "main": "dist/larkexplorer.esm.js",
-  "module": "dist/larkexplorer.esm.js",
-  "types": "dist/index.d.ts",
+  "version": "0.0.44",
+  "main": "demo-vue3-html/public/lib/larkexplorer.esm.js",
+  "module": "demo-vue3-html/public/lib/larkexplorer.esm.js",
+  "types": "demo-vue3-html/public/lib/index.d.ts",
   "scripts": {
     "build": "rollup -c",
     "format": "prettier --write \"src/**/*.ts\"",
@@ -42,12 +42,12 @@
     "registry": "https://registry.npmjs.org/"
   },
   "files": [
-    "dist/*",
+    "demo-vue3-html/public/lib/*",
     "README.md",
     "CHANGES.md",
     "LOG.md"
   ],
   "dependencies": {
-    "cesium": "^1.133.1"
+    "cesium": "1.133.1"
   }
 }
