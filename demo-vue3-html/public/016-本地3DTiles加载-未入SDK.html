@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>014-本地3DTiles加载</title>
+    <script src="./Cesium/Cesium.js"></script>
+    <link rel="stylesheet" href="./Cesium/Widgets/widgets.css" />
+    <script src="./lib/larkexplorer.umd.min.js"></script>
+    <script src="./dat.gui.min.js"></script>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+      }
+      #cesiumContainer {
+        width: 100%;
+        height: 100%;
+        position: relative;
+      }
+      #gui-box {
+        position: absolute;
+        left: 5px;
+        top: 5px;
+        z-index: 99;
+      }
+      #folderInput {
+        position: absolute;
+        left: 10px;
+        top: 10px;
+        z-index: 100;
+      }
+    </style>
+  </head>
+  <body>
+    <input id="folderInput" type="file" webkitdirectory multiple />
+    <div id="cesiumContainer">
+      <div id="gui-box"></div>
+    </div>
+    <script>
+      const { DefaultTdtImg, getTerrain } = LarkExplorer.BaseLayer
+      const viewer = new LarkExplorer.Viewer("cesiumContainer", {
+        baseLayer: DefaultTdtImg,
+        fpsShow: true,
+        mapboxController: true,
+        terrain: getTerrain(
+          "https://www.larkview.cn/tileserver/api/terrain/china_dem_30"
+        ),
+      })
+      let model
+      const BASE_URL = "https://local-tiles/"
+      let vServer
+
+      function normalizePath(p) {
+        return p.replace(/\\/g, "/").replace(/^\.\//, "")
+      }
+
+      function createVirtualServer(files, baseUrl) {
+        const map = new Map()
+        files.forEach((f) => {
+          const key = normalizePath(f.webkitRelativePath || f.name)
+          map.set(key, f)
+        })
+        const orig = {
+          fetchArrayBuffer: Cesium.Resource.prototype.fetchArrayBuffer,
+          fetchJson: Cesium.Resource.prototype.fetchJson,
+          fetchText: Cesium.Resource.prototype.fetchText,
+          fetchBlob: Cesium.Resource.prototype.fetchBlob,
+          fetchImage: Cesium.Resource.prototype.fetchImage,
+        }
+        function getFileFromUrl(url) {
+          if (!url || url.indexOf(baseUrl) !== 0) return null
+          const rel = normalizePath(url.substring(baseUrl.length))
+          const f = map.get(rel)
+          return f || null
+        }
+        function enable() {
+          Cesium.Resource.prototype.fetchArrayBuffer = function (options) {
+            const f = getFileFromUrl(this.url)
+            if (f) return f.arrayBuffer()
+            return orig.fetchArrayBuffer.call(this, options)
+          }
+          Cesium.Resource.prototype.fetchJson = function (options) {
+            const f = getFileFromUrl(this.url)
+            if (f) return f.text().then((t) => JSON.parse(t))
+            return orig.fetchJson.call(this, options)
+          }
+          Cesium.Resource.prototype.fetchText = function (options) {
+            const f = getFileFromUrl(this.url)
+            if (f) return f.text()
+            return orig.fetchText.call(this, options)
+          }
+          Cesium.Resource.prototype.fetchBlob = function (options) {
+            const f = getFileFromUrl(this.url)
+            if (f) return Promise.resolve(f)
+            return orig.fetchBlob.call(this, options)
+          }
+          Cesium.Resource.prototype.fetchImage = function (options) {
+            const f = getFileFromUrl(this.url)
+            if (f) {
+              const u = URL.createObjectURL(f)
+              return Cesium.loadImage(u).then((img) => {
+                URL.revokeObjectURL(u)
+                return img
+              })
+            }
+            return orig.fetchImage.call(this, options)
+          }
+        }
+        function disable() {
+          Cesium.Resource.prototype.fetchArrayBuffer = orig.fetchArrayBuffer
+          Cesium.Resource.prototype.fetchJson = orig.fetchJson
+          Cesium.Resource.prototype.fetchText = orig.fetchText
+          Cesium.Resource.prototype.fetchBlob = orig.fetchBlob
+          Cesium.Resource.prototype.fetchImage = orig.fetchImage
+        }
+        return { enable, disable }
+      }
+
+      function setupGui(target) {
+        const params = {
+          选择文件夹: () => {
+            document.getElementById("folderInput").click()
+          },
+          移除模型: () => {
+            if (model) viewer.Layers.remove(model)
+          },
+          显示包围盒: false,
+          瓦片着色: false,
+          误差阈值: 16,
+        }
+        const gui = new dat.GUI({ autoPlace: false })
+        document.getElementById("gui-box").appendChild(gui.domElement)
+        gui.add(params, "选择文件夹")
+        gui.add(params, "移除模型")
+        const bv = gui.add(params, "显示包围盒")
+        bv.onFinishChange((v) => {
+          if (model) model.debugShowBoundingVolume = v
+        })
+        const color = gui.add(params, "瓦片着色")
+        color.onFinishChange((v) => {
+          if (model) model.debugColorizeTiles = v
+        })
+        const sse = gui.add(params, "误差阈值", 2, 64, 1)
+        sse.onFinishChange((v) => {
+          if (model) model.maximumScreenSpaceError = v
+        })
+      }
+
+      document
+        .getElementById("folderInput")
+        .addEventListener("change", async (e) => {
+          const files = Array.from(e.target.files || [])
+          if (!files.length) return
+          if (vServer) vServer.disable()
+          vServer = createVirtualServer(files, BASE_URL)
+          vServer.enable()
+          let tilesetFile = null
+          for (const f of files) {
+            const name = (f.webkitRelativePath || f.name).split("/").pop() || ""
+            if (/^tileset\.json$/i.test(name)) {
+              tilesetFile = f
+              break
+            }
+          }
+          if (!tilesetFile) {
+            alert("未找到 tileset.json")
+            return
+          }
+          const rel = normalizePath(
+            tilesetFile.webkitRelativePath || tilesetFile.name
+          )
+          const url = BASE_URL + rel
+          model = await viewer.Layers.TilesModel.add3DTiles(url, 0)
+          viewer.flyTo(model)
+        })
+
+      setupGui()
+    </script>
+  </body>
+</html>
