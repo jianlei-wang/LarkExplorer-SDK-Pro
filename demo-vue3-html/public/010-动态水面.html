@@ -6,7 +6,7 @@
     <title>010-动态水面</title>
     <script src="./Cesium/Cesium.js"></script>
     <link rel="stylesheet" href="./Cesium/Widgets/widgets.css" />
-    <script src="./lib/larkexplorer.umd.min.js"></script>
+    <script src="./lib/arc3dlab.umd.min.js"></script>
     <script src="./dat.gui.min.js"></script>
     <style>
       html,
@@ -34,8 +34,8 @@
       <div id="gui-box"></div>
     </div>
     <script>
-      const { DefaultTdtImg } = LarkExplorer.BaseLayer
-      const viewer = new LarkExplorer.Viewer("cesiumContainer", {
+      const { DefaultTdtImg } = Arc3DLab.BaseLayer
+      const viewer = new Arc3DLab.Viewer("cesiumContainer", {
         baseLayer: DefaultTdtImg,
         fpsShow: true,
         mapboxController: true,
@@ -65,8 +65,8 @@
       ]
       let waterPrimitive
       function showWater() {
-        const positions = LarkExplorer.Coordinates.PosFromDegreeArray(points)
-        const positions1 = LarkExplorer.Coordinates.PosFromDegreeArray(points1)
+        const positions = Arc3DLab.Coordinates.PosFromDegreeArray(points)
+        const positions1 = Arc3DLab.Coordinates.PosFromDegreeArray(points1)
         waterPrimitive = viewer.Layers.Add.addWaters({
           id: "water-primitive",
           polygons: [positions, positions1],

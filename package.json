@@ -1,8 +1,8 @@
 {
-  "name": "larkexplorer-sdk-pro",
-  "version": "0.0.44",
-  "main": "demo-vue3-html/public/lib/larkexplorer.esm.js",
-  "module": "demo-vue3-html/public/lib/larkexplorer.esm.js",
+  "name": "arc3dlab-sdk-pro",
+  "version": "0.0.45",
+  "main": "demo-vue3-html/public/lib/arc3dlab.esm.js",
+  "module": "demo-vue3-html/public/lib/arc3dlab.esm.js",
   "types": "demo-vue3-html/public/lib/index.d.ts",
   "scripts": {
     "build": "rollup -c",
@@ -16,8 +16,8 @@
     "webGL",
     "WebGis",
     "Cesium",
-    "LarkExplorer",
-    "LarkExplorer SDK"
+    "Arc3DLab",
+    "Arc3DLab SDK"
   ],
   "author": "spring-fisher",
   "license": "ISC",

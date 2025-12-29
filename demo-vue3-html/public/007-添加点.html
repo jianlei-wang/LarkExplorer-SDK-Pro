@@ -6,7 +6,7 @@
     <title>007-添加点</title>
     <script src="./Cesium/Cesium.js"></script>
     <link rel="stylesheet" href="./Cesium/Widgets/widgets.css" />
-    <script src="./lib/larkexplorer.umd.min.js"></script>
+    <script src="./lib/arc3dlab.umd.min.js"></script>
     <script src="./dat.gui.min.js"></script>
     <style>
       html,
@@ -34,8 +34,8 @@
       <div id="gui-box"></div>
     </div>
     <script>
-      const { DefaultTdtImg, DefaultTerrain } = LarkExplorer.BaseLayer
-      const viewer = new LarkExplorer.Viewer("cesiumContainer", {
+      const { DefaultTdtImg, DefaultTerrain } = Arc3DLab.BaseLayer
+      const viewer = new Arc3DLab.Viewer("cesiumContainer", {
         baseLayer: DefaultTdtImg,
         fpsShow: true,
         mapboxController: true,
@@ -57,7 +57,7 @@
         const outlineWidth = Math.ceil(pixelSize / 3)
         console.log(pColor, pOutlineColor)
         const onGround = false
-        const pg = new LarkExplorer.PointGraphics({
+        const pg = new Arc3DLab.PointGraphics({
           pColor,
           pixelSize,
           pOutlineColor,
@@ -73,7 +73,7 @@
         const preY = Math.random() > 0.5 ? 1 : -1
         const y = 30 + Math.random() * preY * 2
         const z = 0
-        return LarkExplorer.Coordinates.transformWGS84ToCartesian({ x, y, z })
+        return Arc3DLab.Coordinates.transformWGS84ToCartesian({ x, y, z })
       }
       let pointPrimitive
       async function addPrimitive() {

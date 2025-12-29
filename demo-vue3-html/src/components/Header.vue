@@ -11,8 +11,8 @@ const sdkVersion = () => {
 </script>
 <template>
   <div class="header-main">
-    <img src="/Logo.svg" alt="" width="80" />
-    <span class="title">LarkExplorer SDK Pro</span>
+    <img src="/Logo.png" alt="" width="64" />
+    <span class="title">Arc3DLab SDK Pro</span>
     <span class="version">{{ versionList[0] }}</span>
     <span class="version">Demo For Cesium ^1.133.1</span>
     <span class="info">
@@ -43,6 +43,7 @@ const sdkVersion = () => {
     text-shadow: 0px 1px 0px #888, 0px 2px 0px #777, 0px 3px 0px #666,
       0px 4px 0px #555, 0px 5px 0px #444, 0px 6px 0px #333, 0px 7px 0px #222,
       0px 8px 7px #001135;
+      margin-left: 10px;
   }
 
   .version {

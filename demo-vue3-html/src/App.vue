@@ -79,7 +79,7 @@ async function fetchHtmlContent(path: string): Promise<string> {
       </div>
     </div>
     <span class="copyright"
-      >☆ 北京东方至远科技股份有限公司 || Beijing Vastitude Technology Co.,Ltd
+      >☆ Arc-3D-Lab || ISC License
       ☆</span
     >
   </div>

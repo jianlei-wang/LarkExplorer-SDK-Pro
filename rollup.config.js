@@ -5,7 +5,7 @@ import peerDepsExternal from "rollup-plugin-peer-deps-external"
 import copy from "rollup-plugin-copy"
 import { terser } from "rollup-plugin-terser"
 
-const libraryName = "larkexplorer"
+const libraryName = "arc3dlab"
 
 export default [
   {
@@ -25,7 +25,7 @@ export default [
       {
         file: `demo-vue3-html/public/lib/${libraryName}.umd.js`,
         format: "umd", // 模块格式，这里是 UMD 格式，适用于浏览器和 Node.js
-        name: "LarkExplorer", // 全局变量名称，UMD 格式在浏览器中会将库暴露为这个变量
+        name: "Arc3DLab", // 全局变量名称，UMD 格式在浏览器中会将库暴露为这个变量
         sourcemap: true,
       },
     ],
@@ -61,7 +61,7 @@ export default [
     output: {
       file: `demo-vue3-html/public/lib/${libraryName}.umd.min.js`,
       format: "umd",
-      name: "LarkExplorer",
+      name: "Arc3DLab",
       sourcemap: true,
     },
     plugins: [

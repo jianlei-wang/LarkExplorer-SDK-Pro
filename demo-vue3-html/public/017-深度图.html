@@ -6,7 +6,7 @@
     <title>Cesium 深度图生成器</title>
     <script src="./Cesium/Cesium.js"></script>
     <link rel="stylesheet" href="./Cesium/Widgets/widgets.css" />
-    <script src="./lib/larkexplorer.umd.min.js"></script>
+    <script src="./lib/arc3dlab.umd.min.js"></script>
     <style>
       * {
         margin: 0;
@@ -205,8 +205,8 @@
     </div>
 
     <script>
-      const { DefaultTdtImg, getTerrain } = LarkExplorer.BaseLayer
-      const viewer = new LarkExplorer.Viewer("cesiumContainer", {
+      const { DefaultTdtImg, getTerrain } = Arc3DLab.BaseLayer
+      const viewer = new Arc3DLab.Viewer("cesiumContainer", {
         baseLayer: DefaultTdtImg,
         fpsShow: true,
         mapboxController: true,

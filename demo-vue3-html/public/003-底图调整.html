@@ -6,7 +6,7 @@
     <title>003-底图调整</title>
     <script src="./Cesium/Cesium.js"></script>
     <link rel="stylesheet" href="./Cesium/Widgets/widgets.css" />
-    <script src="./lib/larkexplorer.umd.min.js"></script>
+    <script src="./lib/arc3dlab.umd.min.js"></script>
     <script src="./dat.gui.min.js"></script>
     <style>
       html,
@@ -34,8 +34,8 @@
       <div id="gui-box"></div>
     </div>
     <script>
-      const viewer = new LarkExplorer.Viewer("cesiumContainer", {
-        baseLayer: LarkExplorer.BaseLayer.DefaultSingleImg,
+      const viewer = new Arc3DLab.Viewer("cesiumContainer", {
+        baseLayer: Arc3DLab.BaseLayer.DefaultSingleImg,
         fpsShow: true,
       })
       initGui()
@@ -52,7 +52,7 @@
           ArcgisImagery: 3,
         })
         baseImg.onChange((val) => {
-          const baseLayer = LarkExplorer.BaseLayer
+          const baseLayer = Arc3DLab.BaseLayer
           const option = {
             0: baseLayer.DefaultSingleImg,
             1: baseLayer.DefaultTdtImg,
