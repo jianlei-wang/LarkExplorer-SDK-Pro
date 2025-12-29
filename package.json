@@ -1,6 +1,6 @@
 {
   "name": "arc3dlab-sdk-pro",
-  "version": "0.0.45",
+  "version": "0.0.1",
   "main": "demo-vue3-html/public/lib/arc3dlab.esm.js",
   "module": "demo-vue3-html/public/lib/arc3dlab.esm.js",
   "types": "demo-vue3-html/public/lib/index.d.ts",
